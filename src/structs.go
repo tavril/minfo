@@ -64,8 +64,9 @@ type info struct {
 	} `json:"battery"`
 	Displays []display `json:"displays"`
 	Software struct {
-		NumApps int `json:"num_apps"`
-		NumBrew int `json:"num_homebrew"`
+		NumApps         int `json:"num_apps"`
+		NumBrewFormulae int `json:"num_homebrew_formulae"`
+		NumBrewCasks    int `json:"num_homebrew_casks"`
 	} `json:"software"`
 	Terminal string `json:"terminal"`
 	Uptime   string `json:"uptime"`

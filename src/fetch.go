@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/fs"
 	"net/http"
 	"os"
 	"os/exec"
@@ -20,7 +19,6 @@ import (
 )
 
 // Fetch information from "system_profiler"
-// and populate the hostInfo struct accordingly
 func fetchSystemProfiler(hostInfo *info, haveCache bool) (err error) {
 	var spInfo systemProfilerInfo
 
@@ -46,12 +44,6 @@ func fetchSystemProfiler(hostInfo *info, haveCache bool) (err error) {
 	if err = json.Unmarshal([]byte(output), &spInfo); err != nil {
 		return
 	}
-	var osFriendlyNameMap = map[string]string{
-		"13": "Ventura",
-		"14": "Sonoma",
-		"15": "Sequoia",
-	}
-
 	// User
 	if slices.Contains(config.Items, "user") {
 		re := regexp.MustCompile(`^([\w\s]+)\s\((\w+)\)$`)
@@ -81,12 +73,19 @@ func fetchSystemProfiler(hostInfo *info, haveCache bool) (err error) {
 		hostInfo.Os.KernelType = kernelInfoArr[0]
 		hostInfo.Os.KernelVersion = kernelInfoArr[1]
 		majorOsVersion := strings.Split(hostInfo.Os.SystemVersion, ".")[0]
+		var osFriendlyNameMap = map[string]string{
+			"13": "Ventura",
+			"14": "Sonoma",
+			"15": "Sequoia",
+		}
 		var ok bool
+
 		if hostInfo.Os.SystemVersionCodeNname, ok = osFriendlyNameMap[majorOsVersion]; !ok {
-			hostInfo.Os.SystemVersionCodeNname = "Unknown"
+			hostInfo.Os.SystemVersionCodeNname = "(Unknown)"
 		}
 	}
 
+	// If we don't use cache, we need to parse the system_profiler output
 	if !haveCache {
 		// Model
 		if slices.Contains(config.Items, "model") {
@@ -175,22 +174,27 @@ func fetchSystemProfiler(hostInfo *info, haveCache bool) (err error) {
 }
 
 // Fetch the number of Homebrew packages installed
-func fetchNumHomebrew() (packages int) {
+func fetchNumHomebrew() (formulaeCount, casksCount int) {
 	var filePath string
+	var output string
 	var err error
 	if filePath, err = which("brew"); err != nil {
 		return
 	}
 
-	cmd := exec.Command(filePath, "--cellar")
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	if err = cmd.Run(); err == nil {
-		var entries []fs.DirEntry
-		if entries, err = os.ReadDir(strings.TrimSuffix(out.String(), "\n")); err == nil {
-			packages = len(entries) - 1 // -1 for '.'
-		}
+	cmd := exec.Command(filePath, "list", "-1", "--formulae")
+	output, err = runCommand(cmd)
+	if err != nil {
+		return -1, -1 // "-1" makes it obvious to know there was an error
 	}
+	formulaeCount = len(strings.Split(output, "\n"))
+	cmd = exec.Command(filePath, "list", "-1", "--casks")
+	output, err = runCommand(cmd)
+	if err != nil {
+		return formulaeCount, -1
+	}
+	casksCount = len(strings.Split(output, "\n"))
+
 	return
 }
 

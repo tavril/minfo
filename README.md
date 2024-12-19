@@ -34,7 +34,7 @@ make
 
 Then launch
 
-```
+```text
 ./minfo
 ```
 
@@ -56,8 +56,10 @@ Usage:
 
 ### Cache file
 
-There is a cache file which caches the computer model, CPU, GPU and memory information (as these information are unlikely to change...).
-By default, the cache is located at `~/.minfo-cache.json`. You can change the location of the cache file in the configuration file.
+There is a cache file which caches the computer model, CPU, GPU and memory
+information (as these information are unlikely to change...).
+By default, the cache is located at `~/.minfo-cache.json`. You can change
+the location of the cache file in the configuration file.
 
 - You can ask the tool to not use the cache with command line parameter `-n`.
 - You can ask the tool to refresh the cache with command line parameter `-r`.

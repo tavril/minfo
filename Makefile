@@ -2,7 +2,6 @@
 APP_NAME := minfo
 SRC_DIR := ./src
 DOC_DIR := ./doc
-BUILD_DIR := ..
 GIT_COMMIT = $(shell git rev-parse HEAD)
 GIT_TAG    = $(shell git describe --tags --abbrev=0 --exact-match 2>/dev/null)
 RONN := ronn
@@ -20,19 +19,18 @@ all: build
 # Build the application
 build:
 	@echo "Building $(APP_NAME)..."
-	@mkdir -p $(BUILD_DIR)
-	@cd $(SRC_DIR) && go build -ldflags "-s -w -X main.GitCommit=$(GIT_COMMIT) -X main.GitVersion=$(GIT_TAG)" -o $(BUILD_DIR)/$(APP_NAME)
-	@echo "Build complete. Binary is located at $(BUILD_DIR)/$(APP_NAME)"
+	@cd $(SRC_DIR) && go build -ldflags "-s -w -X main.GitCommit=$(GIT_COMMIT) -X main.GitVersion=$(GIT_TAG)" -o ../$(APP_NAME)
+	@echo "Build complete."
 
 # Run the application
 run: build
 	@echo "Running $(APP_NAME)..."
-	@./$(BUILD_DIR)/$(APP_NAME)
+	@./$(APP_NAME)
 
 # Clean build artifacts
 clean:
 	@echo "Cleaning up..."
-	@rm -f $(BUILD_DIR)/$(APP_NAME)
+	@rm -f ./$(APP_NAME)
 	@echo "Clean complete."
 
 # Tidy up Go dependencies (optional)

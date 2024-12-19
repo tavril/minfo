@@ -18,6 +18,8 @@ import (
 
 func main() {
 	var err error
+
+	/* ---------- Flags ---------- */
 	jsonFlag := flag.Bool("j", false, "Output in JSON format instead of displaying logo")
 	refreshCacheFlag := flag.Bool("r", false, "Refresh cache (or create it if it doesn't exist)")
 	noCacheFlag := flag.Bool("n", false, "Don't use/update cache")
@@ -27,6 +29,7 @@ func main() {
 	configFilePath := flag.String("c", filepath.Join(os.Getenv("HOME"), ".config", "minfo.yml"), "Path to the configuration file")
 	helpFlag := flag.Bool("h", false, "Show help")
 
+	/* ---------- Deal with Flags ---------- */
 	flag.Parse()
 	haveCache := false
 
@@ -36,17 +39,14 @@ func main() {
 		os.Exit(0)
 	}
 	if *showVersionFlag {
-		if GitCommit != "homebrew" {
-			GitCommit = "commit " + GitCommit
-		}
-		fmt.Printf("minfo version %s (%s)\n", GitVersion, GitCommit)
+		fmt.Printf("minfo version %s (commit %s)\n", GitVersion, GitCommit)
 		os.Exit(0)
 	}
 	if *noCacheFlag && *refreshCacheFlag {
-		log.Fatalf("Can't use both -r and -n flags")
+		log.Fatalf("-r and -n flags are mutually exclusive.")
 	}
 	if *listItems {
-		fmt.Println("Here is the list of all available information:")
+		fmt.Println("Available information to choose from:")
 		slices.Sort(allItems)
 		for _, item := range allItems {
 			fmt.Printf("- %s\n", item)
@@ -54,6 +54,7 @@ func main() {
 		os.Exit(0)
 	}
 
+	/* ---------- Load Configuration ---------- */
 	_, err = os.Stat(*configFilePath)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		log.Fatal("Cannot read configuration file")
@@ -94,13 +95,9 @@ func main() {
 		}
 	}
 
-	/*
-		We cache the following information, which are unlikely to change:
-			- Model
-			- CPU and GPU
-			- Memory
-		readCacheFiles() reads the cache file and unmarshals it into hostInfo
-	*/
+	/* ---------- Deal with cache ---------- */
+	//	We cache the following information, which are unlikely to change:
+	//	Computer model, CPU and GPU, and memory.
 	if !*refreshCacheFlag && !*noCacheFlag {
 		if err = readCacheFile(config.CacheFilePath); err != nil {
 			if !errors.Is(err, os.ErrNotExist) && err != errEmptyCache {
@@ -111,12 +108,11 @@ func main() {
 		}
 	}
 
+	/* ---------- Prepare tasks ---------- */
 	// Prepare the tasks to execute
 	var spErr error
 	tasks := []func(){}
 
-	// This is a quick help to know with an item as been requested or not
-	// (quicker than parsing config.Items each time)
 	reqItems := make(map[string]bool, len(config.Items))
 	for _, item := range allItems {
 		if slices.Contains(config.Items, item) {
@@ -145,23 +141,23 @@ func main() {
 			}
 		}
 	}
+	// "model" needs both data from system_profiler and from ioreg
+	if reqItems["model"] && !haveCache {
+		tasks = append(tasks, func() { hostInfo.Model.Name, hostInfo.Model.SubName, hostInfo.Model.Date = fetchModelYear() })
+	}
 
 	if reqItems["terminal"] {
 		tasks = append(tasks, func() { hostInfo.Terminal = fetchTermProgram() })
 	}
 	if reqItems["software"] {
 		tasks = append(tasks, func() { hostInfo.Software.NumApps = fetchNumApps() })
-		tasks = append(tasks, func() { hostInfo.Software.NumBrew = fetchNumHomebrew() })
+		tasks = append(tasks, func() { hostInfo.Software.NumBrewFormulae, hostInfo.Software.NumBrewCasks = fetchNumHomebrew() })
 	}
 	if reqItems["public_ip"] {
 		tasks = append(tasks, func() { hostInfo.PublicIP = fetchPublicIp() })
 	}
-	// "model" needs both data from system_profiler and from ioreg
-	// system_profiler has been treaded above ...
-	if reqItems["model"] && !haveCache {
-		tasks = append(tasks, func() { hostInfo.Model.Name, hostInfo.Model.SubName, hostInfo.Model.Date = fetchModelYear() })
-	}
 
+	/* ---------- Execute tasks ---------- */
 	var wg sync.WaitGroup
 	wg.Add(len(tasks))
 	for _, task := range tasks {
@@ -176,6 +172,7 @@ func main() {
 		log.Fatalf("Error fetching system profiler: %v", spErr)
 	}
 
+	/* ---------- Display information ---------- */
 	if *jsonFlag {
 		jsonData, err := json.MarshalIndent(hostInfo, "", "  ")
 		if err != nil {
@@ -185,6 +182,8 @@ func main() {
 	} else {
 		printInfo(&hostInfo, *withLogoFlag)
 	}
+
+	/* ---------- Write cache file ---------- */
 	if !haveCache && !*noCacheFlag {
 		if err = writeCacheFile(config.CacheFilePath); err != nil {
 			log.Fatalf("Error writing cache file: %v", err)

@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// helper to create a line of information
 func createInfoLine(title, info string) []string {
 	return []string{colorCyan, title, colorNormal, info}
 }
@@ -31,11 +32,14 @@ func printInfo(hostInfo *info, withLogo bool) {
 		colorCyan = "\033[00;36m"
 		colorOrange = "\033[00;91m"
 	}
-	// This will store all the lines for the information to be displayed.
+	// Each item of ìnfo` is a slice of strings which contains
+	// - Color code for the title
+	// - Title
+	// - Color code for the information
+	// - Information
 	info := [][]string{}
 
-	// Creating/Formating all the information lines to be displayed
-	// (we process the requested items in the order they were requested in the configuration file)
+	/* ---------- Create the information lines ---------- */
 	for _, requestedItem := range config.Items {
 		switch requestedItem {
 		case "user":
@@ -135,9 +139,10 @@ func printInfo(hostInfo *info, withLogo bool) {
 			info = append(info, createInfoLine("Terminal", hostInfo.Terminal))
 		case "software":
 			info = append(info, createInfoLine("Software",
-				fmt.Sprintf("%d Apps | %d Homebrew packages",
+				fmt.Sprintf("%d Apps | %d Formulae | %d Casks",
 					hostInfo.Software.NumApps,
-					hostInfo.Software.NumBrew,
+					hostInfo.Software.NumBrewFormulae,
+					hostInfo.Software.NumBrewCasks,
 				),
 			))
 		case "public_ip":
@@ -172,9 +177,11 @@ func printInfo(hostInfo *info, withLogo bool) {
 		}
 		lenLogoLine := len(appleLogo[0][1])
 
-		/* Here, we want to center the display of the logo and the information.
-		So we calculate a padding to be added to the top and bottom of either
-		the logo (if it has less lines than the information) or the information. */
+		/* ---------- Vertically center the logo and the information ---------- */
+		// Here, we want to vertically center the display of
+		//the logo and the information. So we calculate a padding to be added
+		// to the top and bottom of either the logo or the information,
+		// depending on which one is shorter.
 		lenAppleLogo := len(appleLogo)
 		lenInfo := len(info)
 		maxLines := max(lenAppleLogo, lenInfo)
@@ -209,7 +216,7 @@ func printInfo(hostInfo *info, withLogo bool) {
 			}
 		}
 
-		// Now we can display everything.
+		/* ---------- Prepare the logo and the information ---------- */
 		for i := 0; i < maxLines; i++ {
 			output.WriteString(fmt.Sprintf("%s%s%s%-15s%s%s\n",
 				appleLogo[i][0],
@@ -221,7 +228,7 @@ func printInfo(hostInfo *info, withLogo bool) {
 			))
 		}
 	} else {
-		// We just display the information, no logo.
+		/* ---------- Prepare only the information ---------- */
 		for _, i := range info {
 			output.WriteString(fmt.Sprintf("%s%-15s%s%s\n",
 				i[0],
