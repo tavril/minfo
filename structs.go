@@ -67,7 +67,7 @@ type info struct {
 		NumApps int `json:"num_apps"`
 		NumBrew int `json:"num_homebrew"`
 	} `json:"software"`
-	//Terminal string `json:"terminal"`
+	Terminal string `json:"terminal"`
 	Uptime   string `json:"uptime"`
 	Datetime string `json:"datetime"`
 	PublicIP string `json:"public_ip"`

@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 // runCommand runs a command and returns the output
@@ -43,4 +44,20 @@ func which(command string) (string, error) {
 
 	// Command not found
 	return "", fmt.Errorf("%s: command not found", command)
+}
+
+// Helper to get a line from a 2D slice, or an empty line if out of range
+func getLine(lines [][]string, index int) string {
+	if index >= 0 && index < len(lines) {
+		return strings.Join(lines[index], "")
+	}
+	return ""
+}
+
+// Helper to calculate the maximum of two integers
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
