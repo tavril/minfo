@@ -18,6 +18,31 @@ import (
 	"github.com/micromdm/plist"
 )
 
+// Custom UnmarshalJSON to handle both "chip_type" and "cpu_type"
+func (h *HardwareInfo) UnmarshalJSON(data []byte) error {
+	// Parse the input JSON into a temporary map
+	var temp map[string]interface{}
+	if err := json.Unmarshal(data, &temp); err != nil {
+		return err
+	}
+
+	// Look for "chip_type" or "cpu_type" and assign to ChipType
+	if val, ok := temp["chip_type"].(string); ok {
+		h.ChipType = val
+	} else if val, ok := temp["cpu_type"].(string); ok {
+		h.ChipType = val
+	}
+	// Assign the rest of the fields
+	h.MachineModel = temp["machine_model"].(string)
+	h.MachineName = temp["machine_name"].(string)
+	if val, ok := temp["model_number"].(string); ok {
+		h.ModelNumber = val
+	}
+	h.NumProc = temp["number_processors"]
+
+	return nil
+}
+
 // Fetch information from "system_profiler"
 // and populate the hostInfo struct accordingly
 func fetchSystemProfiler(hostInfo *info, haveCache bool) (err error) {
@@ -77,21 +102,54 @@ func fetchSystemProfiler(hostInfo *info, haveCache bool) (err error) {
 		// Model
 		hostInfo.Model.Number = spInfo.Hardware[0].ModelNumber
 
-		// CPU
-		cpuCoreInfoArr := strings.Split(strings.Split(spInfo.Hardware[0].NumProc, " ")[1], ":")
-		hostInfo.Cpu.Model = spInfo.Displays[0].Name
-		hostInfo.Cpu.Cores, _ = strconv.Atoi(cpuCoreInfoArr[0])
-		hostInfo.Cpu.PerformanceCores, _ = strconv.Atoi(cpuCoreInfoArr[1])
-		hostInfo.Cpu.EfficiencyCores, _ = strconv.Atoi(cpuCoreInfoArr[2])
+		/* CPU
+		Note: differences between Apple Silicon and Intel CPUs:
+		- field called "chip_type" for Apple Silicon
+		- field called "cpu_type" for Intel
+		- field called "number_processors" is a string for Apple Silicon
+		- field called "number_processors" is an int for Intel
+		*/
+		hostInfo.Cpu.Model = spInfo.Hardware[0].ChipType
+		switch v := spInfo.Hardware[0].NumProc.(type) {
+		case string:
+			cpuCoreInfoArr := strings.Split(strings.Split(v, " ")[1], ":")
+			hostInfo.Cpu.Cores, _ = strconv.Atoi(cpuCoreInfoArr[0])
+			hostInfo.Cpu.PerformanceCores, _ = strconv.Atoi(cpuCoreInfoArr[1])
+			hostInfo.Cpu.EfficiencyCores, _ = strconv.Atoi(cpuCoreInfoArr[2])
+		case float64: // JSON numbers are decoded as float64 by default
+			hostInfo.Cpu.Cores = int(v)
+		}
 
 		// GPU
 		hostInfo.GpuCores, _ = strconv.Atoi(spInfo.Displays[0].NumCores)
 
 		// Memory
-		memUnit := strings.Split(spInfo.Memory[0].Amount, " ")
-		hostInfo.Memory.Amount, _ = strconv.Atoi(memUnit[0])
-		hostInfo.Memory.Unit = memUnit[1]
-		hostInfo.Memory.MemType = spInfo.Memory[0].Type
+		// Handle memory info based on architecture
+		for _, mem := range spInfo.Memory {
+			if memMap, ok := mem.(map[string]interface{}); ok {
+				switch arch {
+				case "arm64":
+					memUnit := strings.Split(memMap["SPMemoryDataType"].(string), " ")
+					hostInfo.Memory.Amount, _ = strconv.Atoi(memUnit[0])
+					hostInfo.Memory.Unit = memUnit[1]
+					hostInfo.Memory.MemType = memMap["dimm_type"].(string)
+				case "amd64":
+					for _, item := range memMap["Items"].([]interface{}) {
+						if itemMap, ok := item.(map[string]interface{}); ok {
+							memUnit := strings.Split(itemMap["dimm_size"].(string), " ")
+							tmp, _ := strconv.Atoi(memUnit[0])
+							hostInfo.Memory.Amount += tmp
+							// Unit and MemType are the same for all DIMMs.
+							// Let's only fill it once.
+							if hostInfo.Memory.Unit == "" {
+								hostInfo.Memory.Unit = memUnit[1]
+								hostInfo.Memory.MemType = itemMap["dimm_type"].(string)
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 
 	// Disk

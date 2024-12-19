@@ -73,6 +73,17 @@ type info struct {
 	PublicIP string `json:"public_ip"`
 }
 
+// We will need a custom unmarshaler for this struct
+// because the ChipType is either "chip_type" (Apple Silicon)
+// or "cpu_type" (Intel).
+type HardwareInfo struct {
+	MachineName  string      `json:"machine_name"`
+	MachineModel string      `json:"machine_model"`
+	ModelNumber  string      `json:"model_number"`
+	NumProc      interface{} `json:"number_processors"` // Can be a string (Apple Silicon) or an int (Intel)
+	ChipType     string      `json:"-"`                 // Common field to store "chip_type" (Apple Silicon) or "cpu_type" (Intel)
+}
+
 // systemProfileInfo contains all the information
 // we need from system_profiler
 type systemProfilerInfo struct {
@@ -95,12 +106,7 @@ type systemProfilerInfo struct {
 		SystemIntegrity string `json:"system_integrity"`
 	} `json:"SPSoftwareDataType"`
 
-	Hardware []struct {
-		MachineName  string `json:"machine_name"`
-		MachineModel string `json:"machine_model"`
-		ModelNumber  string `json:"model_number"`
-		NumProc      string `json:"number_processors"`
-	} `json:"SPHardwareDataType"`
+	Hardware []HardwareInfo `json:"SPHardwareDataType"`
 
 	Power []struct {
 		BatteryChargeInfo struct {
@@ -117,10 +123,7 @@ type systemProfilerInfo struct {
 		} `json:"sppower_battery_health_info"`
 	} `json:"SPPowerDataType"`
 
-	Memory []struct {
-		Amount string `json:"SPMemoryDataType"`
-		Type   string `json:"dimm_type"`
-	} `json:"SPMemoryDataType"`
+	Memory []interface{} `json:"SPMemoryDataType"`
 
 	Storage []struct {
 		FreeSpaceByte int    `json:"free_space_in_bytes"`

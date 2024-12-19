@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 )
@@ -19,6 +20,7 @@ var (
 	hostInfo      = info{}
 	GitCommit     string
 	GitVersion    string
+	arch          = runtime.GOARCH
 )
 
 // Print the information in a human-readable format
