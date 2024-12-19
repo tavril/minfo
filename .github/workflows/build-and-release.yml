@@ -29,7 +29,8 @@ jobs:
     strategy:
       matrix:
         goos: [darwin]
-        goarch: [arm64, amd64]
+        goarch: [arm64]
+        #goarch: [arm64, amd64]
 
     steps:
       - name: Show environment
@@ -42,3 +43,4 @@ jobs:
           goarch: ${{ matrix.goarch }}
           build_command: make
           binary_name: minfo
+          extra_files: doc/minfo.1

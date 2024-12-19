@@ -1,0 +1,34 @@
+.\" generated with Ronn-NG/v0.10.1
+.\" http://github.com/apjanke/ronn-ng/tree/0.10.1
+.TH "MINFO" "1" "December 2024" ""
+.SH "NAME"
+\fBminfo\fR \- display information about your Apple computer
+.SH "SYNOPSIS"
+\fBminfo\fR \fBminfo\fR \fB\-j\fR \fBminfo\fR \fB\-n\fR \fBminfo\fR \fB\-r\fR \fBminfo\fR \fB\-l=false\fR
+.SH "DESCRIPTION"
+\fBminfo\fR displays some information about the computer it runs on\. It only supports Apple computers running macOS\.
+.P
+By default it will displays an Apple ASCII art logo alongside the information\.
+.SH "OPTIONS"
+.TP
+\fB\-j\fR
+Displays the information as JSON\.
+.TP
+\fB\-n\fR
+Do not use the cache\. Mutualy exclusive with \fB\-r\fR\. Default: false\.
+.TP
+\fB\-r\fR
+Refresh the cache\. Mutualy exclusive with \fB\-n\fR\. Default: false\.
+.TP
+\fB\-l\fR, \fB\-l=false\fR
+Do not display the ASCII art image\. Default: false\.
+.TP
+\fB\-i\fR
+Displays the list of all available items to be displayed\.
+.TP
+\fB\-c\fR
+Path to the configuration file to use\.
+.TP
+\fB\-v\fR
+Displays the version of \fBminfo\fR\.
+

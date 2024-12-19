@@ -1,0 +1,48 @@
+minfo(1) -- display information about your Apple computer
+=========================================================
+
+## SYNOPSIS
+
+`minfo`
+`minfo` `-j`
+`minfo` `-n`
+`minfo` `-r`
+`minfo` `-l=false`
+
+## DESCRIPTION
+
+**minfo** displays some information about the computer it runs on.
+It only supports Apple computers running macOS.
+
+By default it will displays an Apple ASCII art logo alongside the information.
+
+
+## OPTIONS
+
+  * `-j`:
+    Displays the information as JSON.
+
+  * `-n`:
+    Do not use the cache.
+    Mutualy exclusive with `-r`.
+    Default: false.
+
+  * `-r`:
+    Refresh the cache.
+    Mutualy exclusive with `-n`.
+    Default: false.
+
+  * `-l`, `-l=false`:
+    Do not display the ASCII art image.
+    Default: false.
+
+  * `-i`:
+    Displays the list of all available items to be displayed.
+
+  * `-c`:
+    Path to the configuration file to use.
+
+  * `-v`:
+    Displays the version of **minfo**.
+
+
