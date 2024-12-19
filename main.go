@@ -107,17 +107,13 @@ func printInfo(hostInfo *info, noLogoFlag bool) {
 			display.RefreshRateHz,
 		))
 	}
-	// If we have no secondary display, add a placeholder
-	if len(hostInfo.Displays) == 1 {
-		displayInfo = append(displayInfo, "N/A")
-	}
 
 	softwareInfo := fmt.Sprintf("%d Apps | %d Homebrew packages",
 		hostInfo.Software.NumApps,
 		hostInfo.Software.NumBrew,
 	)
 
-	applelogo := [][]string{
+	appleLogo := [][]string{
 		{colorGreen, "                    ##           "},
 		{colorGreen, "                  ####           "},
 		{colorGreen, "                #####            "},
@@ -136,7 +132,16 @@ func printInfo(hostInfo *info, noLogoFlag bool) {
 		{colorBlue, "      ######################     "},
 		{colorBlue, "        #######    #######       "},
 	}
+	lenLogoLine := len(appleLogo[0][1])
 
+	// Deal with the Screens
+	displayLines := make([][]string, len(hostInfo.Displays))
+	for i, d := range displayInfo {
+		tmpStr := fmt.Sprintf("Display #%d", i+1)
+		displayLines[i] = []string{colorCyan, tmpStr, colorNormal, d}
+	}
+
+	// Create the information to be displayed
 	info := [][]string{
 		{colorCyan, "User", colorNormal, userInfo},
 		{colorCyan, "Hostname", colorNormal, hostInfo.Hostname},
@@ -149,26 +154,56 @@ func printInfo(hostInfo *info, noLogoFlag bool) {
 		{colorCyan, "Disk SMART", colorNormal, hostInfo.Disk.SmartStatus},
 		{colorCyan, "Battery", colorNormal, batteryInfo},
 		{colorCyan, "Battery health", colorNormal, hostInfo.Battery.Health},
-		{colorCyan, "Main Display", colorNormal, displayInfo[0]},
-		{colorCyan, "Add. Display", colorNormal, displayInfo[1]},
+	}
+	info = append(info, displayLines...)
+	info = append(info, [][]string{
 		{colorCyan, "Software", colorNormal, softwareInfo},
 		{colorCyan, "Public IP", colorNormal, hostInfo.PublicIP},
 		{colorCyan, "Uptime", colorNormal, hostInfo.Uptime},
 		{colorCyan, "Date/Time", colorNormal, hostInfo.Datetime},
-	}
+	}...)
 
 	if !noLogoFlag {
-		for i := 0; i < len(applelogo); i++ {
+		// We must deal with the case where the two arrays have different sizes.
+		var smallestArrSize int
+		lenAppleLogo := len(appleLogo)
+		lenInfo := len(info)
+		if lenAppleLogo < lenInfo {
+			smallestArrSize = lenAppleLogo
+		} else {
+			smallestArrSize = lenInfo
+		}
+		for i := 0; i < smallestArrSize; i++ {
 			output.WriteString(fmt.Sprintf("%s%s%s%-15s%s%s\n",
-				applelogo[i][0],
-				applelogo[i][1],
+				appleLogo[i][0],
+				appleLogo[i][1],
 				info[i][0],
 				info[i][1],
 				info[i][2],
 				info[i][3],
 			))
 		}
+		// Now, handle the remaining lines, in each array, if any.
+		if lenAppleLogo > smallestArrSize {
+			for i := smallestArrSize; i < lenAppleLogo; i++ {
+				output.WriteString(fmt.Sprintf("%s%s\n",
+					appleLogo[i][0],
+					appleLogo[i][1],
+				))
+			}
+		} else if lenInfo > smallestArrSize {
+			for i := smallestArrSize; i < lenInfo; i++ {
+				output.WriteString(fmt.Sprintf("%s%s%-15s%s%s\n",
+					strings.Repeat(" ", lenLogoLine),
+					info[i][0],
+					info[i][1],
+					info[i][2],
+					info[i][3],
+				))
+			}
+		}
 	} else {
+		// We just display the information, no logo.
 		for _, i := range info {
 			output.WriteString(fmt.Sprintf("%s%-15s%s%s\n",
 				i[0],

@@ -116,32 +116,21 @@ func fetchSystemProfiler(hostInfo *info, haveCache bool) (err error) {
 	hostInfo.Battery.Health = spInfo.Power[0].BatteryHealthInfo.Health
 
 	// Displays
-	hostInfo.Displays = make([]display, 1)
 	re = regexp.MustCompile(`^(\d+)\s*x\s*(\d+)\s*@\s*([\d.]+)Hz$`)
 	//For some unknown reason, sometime the Display information is empty !
 	if len(spInfo.Displays) > 0 {
-		tmpArr := strings.Split(spInfo.Displays[0].Ndrvs[0].Pixels, " x ")
-		hostInfo.Displays[0].PixelsWidth, _ = strconv.Atoi(tmpArr[0])
-		hostInfo.Displays[0].PixelsHeight, _ = strconv.Atoi(tmpArr[1])
-		matches = re.FindStringSubmatch(spInfo.Displays[0].Ndrvs[0].Resolution)
-		if len(matches) == 4 {
-			hostInfo.Displays[0].ResolutionWidth, _ = strconv.Atoi(matches[1])
-			hostInfo.Displays[0].ResolutionHeight, _ = strconv.Atoi(matches[2])
-			hostInfo.Displays[0].RefreshRateHz, _ = strconv.ParseFloat(matches[3], 64)
-		}
-		// Maybe we have a second screen ?
-		if len(spInfo.Displays[0].Ndrvs) > 1 {
-			secondaryDisplay := display{}
-			tmpArr := strings.Split(spInfo.Displays[0].Ndrvs[1].Pixels, " x ")
-			secondaryDisplay.PixelsWidth, _ = strconv.Atoi(tmpArr[0])
-			secondaryDisplay.PixelsHeight, _ = strconv.Atoi(tmpArr[1])
-			matches = re.FindStringSubmatch(spInfo.Displays[0].Ndrvs[1].Resolution)
+		for _, displayInfo := range spInfo.Displays[0].Ndrvs {
+			dInfo := display{}
+			tmpArr := strings.Split(displayInfo.Pixels, " x ")
+			dInfo.PixelsWidth, _ = strconv.Atoi(tmpArr[0])
+			dInfo.PixelsHeight, _ = strconv.Atoi(tmpArr[1])
+			matches = re.FindStringSubmatch(displayInfo.Resolution)
 			if len(matches) == 4 {
-				secondaryDisplay.ResolutionWidth, _ = strconv.Atoi(matches[1])
-				secondaryDisplay.ResolutionHeight, _ = strconv.Atoi(matches[2])
-				secondaryDisplay.RefreshRateHz, _ = strconv.ParseFloat(matches[3], 64)
+				dInfo.ResolutionWidth, _ = strconv.Atoi(matches[1])
+				dInfo.ResolutionHeight, _ = strconv.Atoi(matches[2])
+				dInfo.RefreshRateHz, _ = strconv.ParseFloat(matches[3], 64)
 			}
-			hostInfo.Displays = append(hostInfo.Displays, secondaryDisplay)
+			hostInfo.Displays = append(hostInfo.Displays, dInfo)
 		}
 	}
 
