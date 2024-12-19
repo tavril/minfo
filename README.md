@@ -3,21 +3,12 @@
 ## What is minfo ?
 
 `minfo` fetches some information about the computer/OS
-it is running on and display it, alongside an ASCII logo.
+it is running on and display it.
+It can also display an ASCII colored Apple logo.
 
-Information fetched contains:
+Information that can be fetched can be listed by calling `minfo -i`.
 
-- User, Hostname,
-- OS,
-- computer model, CPU, GPU, Memory,
-- Disk (only disk hosting `/`),
-- Battery,
-- Displays,
-- Terminal program being used,
-- Software (including homebrew),
-- Public IP
-
-## Install
+## Installation
 
 Install `minfo` with homebrew:
 
@@ -32,11 +23,29 @@ Or directly with (without adding the tap):
 brew install tavril/tap/minfo
 ```
 
+You can also compile from source:
+
+- Clone the repository.
+- Once inside the directory of the repository, run
+
+```shell
+make
+```
+
+Then launch
+
+```
+./minfo
+```
+
 ## Usage
 
 ```text
 minfo -h
 Usage:
+  -c string
+     Path to the configuration file (default "~/.config/minfo.yml")
+  -i  Display all available information to display
   -h  Show help
   -j  Output in JSON format instead of displaying logo
   -l  Display the ASCII art logo (default true)
@@ -47,7 +56,8 @@ Usage:
 
 ### Cache file
 
-There is a cache file (`~/.minfo-cache.json`) which caches the computer model, CPU, GPU and memory information (as these information are unlikely to change...).
+There is a cache file which caches the computer model, CPU, GPU and memory information (as these information are unlikely to change...).
+By default, the cache is located at `~/.minfo-cache.json`. You can change the location of the cache file in the configuration file.
 
 - You can ask the tool to not use the cache with command line parameter `-n`.
 - You can ask the tool to refresh the cache with command line parameter `-r`.
@@ -60,6 +70,17 @@ You can decide not to display the Apple logo with command line parameter `-l=fal
 
 You can output JSON instead of text by using command line parameter `-j`.
 
+## Configuration file
+
+Configuration file is optional.
+It defines:
+
+- Location of the cache file,
+- Items to be displayed.
+
+By default, the tool will look for a configuration file located at `~/.config/minfo.yml`,
+but you can specify another location with command line parameter `-c <path_to_file>`.
+
 ## TODO
 
-- Have a configuration file where the user can specify what information to display.
+- Make it work on x86_64

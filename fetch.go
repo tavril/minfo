@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -22,11 +23,18 @@ import (
 // and populate the hostInfo struct accordingly
 func fetchSystemProfiler(hostInfo *info, haveCache bool) (err error) {
 	var spInfo systemProfilerInfo
-	args := []string{"-json", "-detailLevel", "basic",
-		"SPSoftwareDataType", "SPPowerDataType", "SPDisplaysDataType",
-		"SPMemoryDataType", "SPStorageDataType"}
-	if !haveCache {
-		args = append(args, "SPHardwareDataType")
+
+	args := []string{"-json", "-detailLevel", "basic"}
+	// Let's only call system_profiler for the information we need
+	for _, requestItem := range config.Items {
+		for dataType, items := range spInfoMapping {
+			if slices.Contains(items, requestItem) {
+				if (dataType == "SPHardwareDataType" && !haveCache) || dataType != "SPHardwareDataType" {
+					args = append(args, dataType)
+				}
+				break
+			}
+		}
 	}
 
 	cmd := exec.Command("/usr/sbin/system_profiler", args...)
@@ -45,99 +53,123 @@ func fetchSystemProfiler(hostInfo *info, haveCache bool) (err error) {
 	}
 
 	// User
-	re := regexp.MustCompile(`^([\w\s]+)\s\((\w+)\)$`)
-	matches := re.FindStringSubmatch(spInfo.Software[0].UserName)
+	if slices.Contains(config.Items, "user") {
+		re := regexp.MustCompile(`^([\w\s]+)\s\((\w+)\)$`)
+		matches := re.FindStringSubmatch(spInfo.Software[0].UserName)
 
-	if len(matches) == 3 {
-		hostInfo.User.RealName = matches[1]
-		hostInfo.User.Login = matches[2]
+		if len(matches) == 3 {
+			hostInfo.User.RealName = matches[1]
+			hostInfo.User.Login = matches[2]
+		}
 	}
 
 	// Hostname
-	hostInfo.Hostname = spInfo.Software[0].HostName
+	if slices.Contains(config.Items, "hostname") {
+		hostInfo.Hostname = spInfo.Software[0].HostName
+	}
 
 	// OS
-	re = regexp.MustCompile(`^(\w+)\s([\d.]+)\s\(([^)]+)\)$`)
-	matches = re.FindStringSubmatch(spInfo.Software[0].OsVersion)
-	if len(matches) == 4 {
-		hostInfo.Os.System = matches[1]        // "macOS"
-		hostInfo.Os.SystemVersion = matches[2] // "15.2"
-		hostInfo.Os.SystemBuild = matches[3]   // "24C101"
-	}
-	kernelInfoArr := strings.Split(spInfo.Software[0].Kernel, " ")
-	hostInfo.Os.KernelType = kernelInfoArr[0]
-	hostInfo.Os.KernelVersion = kernelInfoArr[1]
-	majorOsVersion := strings.Split(hostInfo.Os.SystemVersion, ".")[0]
-	var ok bool
-	if hostInfo.Os.SystemVersionCodeNname, ok = osFriendlyNameMap[majorOsVersion]; !ok {
-		hostInfo.Os.SystemVersionCodeNname = "Unknown"
+	if slices.Contains(config.Items, "os") {
+		re := regexp.MustCompile(`^(\w+)\s([\d.]+)\s\(([^)]+)\)$`)
+		matches := re.FindStringSubmatch(spInfo.Software[0].OsVersion)
+		if len(matches) == 4 {
+			hostInfo.Os.System = matches[1]        // "macOS"
+			hostInfo.Os.SystemVersion = matches[2] // "15.2"
+			hostInfo.Os.SystemBuild = matches[3]   // "24C101"
+		}
+		kernelInfoArr := strings.Split(spInfo.Software[0].Kernel, " ")
+		hostInfo.Os.KernelType = kernelInfoArr[0]
+		hostInfo.Os.KernelVersion = kernelInfoArr[1]
+		majorOsVersion := strings.Split(hostInfo.Os.SystemVersion, ".")[0]
+		var ok bool
+		if hostInfo.Os.SystemVersionCodeNname, ok = osFriendlyNameMap[majorOsVersion]; !ok {
+			hostInfo.Os.SystemVersionCodeNname = "Unknown"
+		}
 	}
 
 	if !haveCache {
 		// Model
-		hostInfo.Model.Number = spInfo.Hardware[0].ModelNumber
+		if slices.Contains(config.Items, "model") {
+			hostInfo.Model.Number = spInfo.Hardware[0].ModelNumber
+		}
 
 		// CPU
-		cpuCoreInfoArr := strings.Split(strings.Split(spInfo.Hardware[0].NumProc, " ")[1], ":")
-		hostInfo.Cpu.Model = spInfo.Displays[0].Name
-		hostInfo.Cpu.Cores, _ = strconv.Atoi(cpuCoreInfoArr[0])
-		hostInfo.Cpu.PerformanceCores, _ = strconv.Atoi(cpuCoreInfoArr[1])
-		hostInfo.Cpu.EfficiencyCores, _ = strconv.Atoi(cpuCoreInfoArr[2])
+		if slices.Contains(config.Items, "cpu") {
+			cpuCoreInfoArr := strings.Split(strings.Split(spInfo.Hardware[0].NumProc, " ")[1], ":")
+			hostInfo.Cpu.Model = spInfo.Displays[0].Name
+			hostInfo.Cpu.Cores, _ = strconv.Atoi(cpuCoreInfoArr[0])
+			hostInfo.Cpu.PerformanceCores, _ = strconv.Atoi(cpuCoreInfoArr[1])
+			hostInfo.Cpu.EfficiencyCores, _ = strconv.Atoi(cpuCoreInfoArr[2])
+		}
 
 		// GPU
-		hostInfo.GpuCores, _ = strconv.Atoi(spInfo.Displays[0].NumCores)
+		if slices.Contains(config.Items, "gpu") {
+			hostInfo.GpuCores, _ = strconv.Atoi(spInfo.Displays[0].NumCores)
+		}
 
 		// Memory
-		memUnit := strings.Split(spInfo.Memory[0].Amount, " ")
-		hostInfo.Memory.Amount, _ = strconv.Atoi(memUnit[0])
-		hostInfo.Memory.Unit = memUnit[1]
-		hostInfo.Memory.MemType = spInfo.Memory[0].Type
+		if slices.Contains(config.Items, "memory") {
+			memUnit := strings.Split(spInfo.Memory[0].Amount, " ")
+			hostInfo.Memory.Amount, _ = strconv.Atoi(memUnit[0])
+			hostInfo.Memory.Unit = memUnit[1]
+			hostInfo.Memory.MemType = spInfo.Memory[0].Type
+		}
 	}
 
 	// Disk
-	for _, hd := range spInfo.Storage {
-		if hd.MountPoint == "/" {
-			hostInfo.Disk.TotalTB = float32(hd.SizeByte) / 1000000000000
-			hostInfo.Disk.FreeTB = float32(hd.FreeSpaceByte) / 1000000000000
-			hostInfo.Disk.SmartStatus = hd.PhyDrive.SmartStatus
-			break
+	if slices.Contains(config.Items, "disk") {
+		for _, hd := range spInfo.Storage {
+			if hd.MountPoint == "/" {
+				hostInfo.Disk.TotalTB = float32(hd.SizeByte) / 1000000000000
+				hostInfo.Disk.FreeTB = float32(hd.FreeSpaceByte) / 1000000000000
+				hostInfo.Disk.SmartStatus = hd.PhyDrive.SmartStatus
+				break
+			}
 		}
 	}
 
 	// Battery
-	hostInfo.Battery.StatusPercent = spInfo.Power[0].BatteryChargeInfo.StateOfCharge
-	hostInfo.Battery.CapacityPercent, _ = strconv.Atoi(strings.TrimSuffix(spInfo.Power[0].BatteryHealthInfo.MaxCapacity, "%"))
+	if slices.Contains(config.Items, "battery") {
+		hostInfo.Battery.StatusPercent = spInfo.Power[0].BatteryChargeInfo.StateOfCharge
+		hostInfo.Battery.CapacityPercent, _ = strconv.Atoi(strings.TrimSuffix(spInfo.Power[0].BatteryHealthInfo.MaxCapacity, "%"))
 
-	if spInfo.Power[0].BatteryChargeInfo.IsCharging == "FALSE" {
-		hostInfo.Battery.Charging = false
-	} else {
-		hostInfo.Battery.Charging = true
+		if spInfo.Power[0].BatteryChargeInfo.IsCharging == "FALSE" {
+			hostInfo.Battery.Charging = false
+		} else {
+			hostInfo.Battery.Charging = true
+		}
+		hostInfo.Battery.Health = spInfo.Power[0].BatteryHealthInfo.Health
 	}
-	hostInfo.Battery.Health = spInfo.Power[0].BatteryHealthInfo.Health
 
 	// Displays
-	re = regexp.MustCompile(`^(\d+)\s*x\s*(\d+)\s*@\s*([\d.]+)Hz$`)
-	//For some unknown reason, sometime the Display information is empty !
-	if len(spInfo.Displays) > 0 {
-		for _, displayInfo := range spInfo.Displays[0].Ndrvs {
-			dInfo := display{}
-			tmpArr := strings.Split(displayInfo.Pixels, " x ")
-			dInfo.PixelsWidth, _ = strconv.Atoi(tmpArr[0])
-			dInfo.PixelsHeight, _ = strconv.Atoi(tmpArr[1])
-			matches = re.FindStringSubmatch(displayInfo.Resolution)
-			if len(matches) == 4 {
-				dInfo.ResolutionWidth, _ = strconv.Atoi(matches[1])
-				dInfo.ResolutionHeight, _ = strconv.Atoi(matches[2])
-				dInfo.RefreshRateHz, _ = strconv.ParseFloat(matches[3], 64)
+	if slices.Contains(config.Items, "display") {
+		re := regexp.MustCompile(`^(\d+)\s*x\s*(\d+)\s*@\s*([\d.]+)Hz$`)
+		//For some unknown reason, sometime the Display information is empty !
+		if len(spInfo.Displays) > 0 {
+			for _, displayInfo := range spInfo.Displays[0].Ndrvs {
+				dInfo := display{}
+				tmpArr := strings.Split(displayInfo.Pixels, " x ")
+				dInfo.PixelsWidth, _ = strconv.Atoi(tmpArr[0])
+				dInfo.PixelsHeight, _ = strconv.Atoi(tmpArr[1])
+				matches := re.FindStringSubmatch(displayInfo.Resolution)
+				if len(matches) == 4 {
+					dInfo.ResolutionWidth, _ = strconv.Atoi(matches[1])
+					dInfo.ResolutionHeight, _ = strconv.Atoi(matches[2])
+					dInfo.RefreshRateHz, _ = strconv.ParseFloat(matches[3], 64)
+				}
+				hostInfo.Displays = append(hostInfo.Displays, dInfo)
 			}
-			hostInfo.Displays = append(hostInfo.Displays, dInfo)
 		}
 	}
 
 	// Uptime and Date
-	uptimeInfoArr := strings.Split(strings.Split(spInfo.Software[0].Uptime, " ")[1], ":")
-	hostInfo.Uptime = fmt.Sprintf("%s days, %s hours", uptimeInfoArr[0], uptimeInfoArr[1])
-	hostInfo.Datetime = time.Now().Format(time.RFC1123)
+	if slices.Contains(config.Items, "uptime") {
+		uptimeInfoArr := strings.Split(strings.Split(spInfo.Software[0].Uptime, " ")[1], ":")
+		hostInfo.Uptime = fmt.Sprintf("%s days, %s hours", uptimeInfoArr[0], uptimeInfoArr[1])
+	}
+	if slices.Contains(config.Items, "datetime") {
+		hostInfo.Datetime = time.Now().Format(time.RFC1123)
+	}
 
 	return
 }

@@ -10,218 +10,11 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 )
-
-// Print the information in a human-readable format
-func printInfo(hostInfo *info, withLogo bool) {
-	var output strings.Builder
-
-	if strings.Contains(os.Getenv("TERM"), "256") {
-		colorRed = "\033[38;5;160m"
-		colorGreen = "\033[38;5;028m"
-		colorYellow = "\033[38;5;226m"
-		colorBlue = "\033[38;5;021m"
-		colorPurple = "\033[38;5;054m"
-		colorCyan = "\033[38;5;075m"
-		colorOrange = "\033[38;5;202m"
-	} else {
-		colorRed = "\033[00;31m"
-		colorGreen = "\033[00;32m"
-		colorYellow = "\033[00;33m"
-		colorBlue = "\033[00;34m"
-		colorPurple = "\033[00;35m"
-		colorCyan = "\033[00;36m"
-		colorOrange = "\033[00;91m"
-	}
-
-	/* ---------- Formating the information to be displayed ---------- */
-	userInfo := fmt.Sprintf("%s (%s)", hostInfo.User.RealName, hostInfo.User.Login)
-	osInfo := fmt.Sprintf("%s %s %s (%s) %s %s",
-		hostInfo.Os.System,
-		hostInfo.Os.SystemVersionCodeNname,
-		hostInfo.Os.SystemVersion,
-		hostInfo.Os.SystemBuild,
-		hostInfo.Os.KernelType,
-		hostInfo.Os.KernelVersion,
-	)
-	modelInfo := fmt.Sprintf("%s %s (%s) %s",
-		hostInfo.Model.Name,
-		hostInfo.Model.SubName,
-		hostInfo.Model.Date,
-		hostInfo.Model.Number,
-	)
-
-	var cpuCoreInfo string
-	if strings.HasPrefix(hostInfo.Cpu.Model, "Apple") {
-		cpuCoreInfo = fmt.Sprintf("%s %d cores (%d P and %d E)",
-			hostInfo.Cpu.Model,
-			hostInfo.Cpu.Cores,
-			hostInfo.Cpu.PerformanceCores,
-			hostInfo.Cpu.EfficiencyCores,
-		)
-	} else {
-		// Intel CPU: The model also includes the number of cores
-		// (Ex: "6-Core Intel Core i7")
-		cpuCoreInfo = fmt.Sprintf("%s", hostInfo.Cpu.Model)
-	}
-	gpuInfo := fmt.Sprintf("%d cores", hostInfo.GpuCores)
-
-	memoryInfo := fmt.Sprintf("%d %s %s",
-		hostInfo.Memory.Amount,
-		hostInfo.Memory.Unit,
-		hostInfo.Memory.MemType,
-	)
-
-	diskInfo := fmt.Sprintf("%.2f TB (%.2f TB available)",
-		hostInfo.Disk.TotalTB,
-		hostInfo.Disk.FreeTB,
-	)
-
-	var charging string
-	if hostInfo.Battery.Charging {
-		charging = "(charging)"
-	} else {
-		charging = "(discharging)"
-	}
-	batteryInfo := fmt.Sprintf("%d%% %s | %d%% capacity",
-		hostInfo.Battery.StatusPercent,
-		charging,
-		hostInfo.Battery.CapacityPercent,
-	)
-
-	var displayInfo []string
-	for _, display := range hostInfo.Displays {
-		displayInfo = append(displayInfo, fmt.Sprintf("%d x %d | %d x %d @ %.0f Hz",
-			display.PixelsWidth,
-			display.PixelsHeight,
-			display.ResolutionWidth,
-			display.ResolutionHeight,
-			display.RefreshRateHz,
-		))
-	}
-	softwareInfo := fmt.Sprintf("%d Apps | %d Homebrew packages",
-		hostInfo.Software.NumApps,
-		hostInfo.Software.NumBrew,
-	)
-
-	/* ---------- Adding title and color ---------- */
-	// Deal with the Screens
-	displayLines := make([][]string, len(hostInfo.Displays))
-	for i, d := range displayInfo {
-		tmpStr := fmt.Sprintf("Display #%d", i+1)
-		displayLines[i] = []string{colorCyan, tmpStr, colorNormal, d}
-	}
-
-	info := [][]string{
-		{colorCyan, "User", colorNormal, userInfo},
-		{colorCyan, "Hostname", colorNormal, hostInfo.Hostname},
-		{colorCyan, "OS", colorNormal, osInfo},
-		{colorCyan, "Model", colorNormal, modelInfo},
-		{colorCyan, "CPU", colorNormal, cpuCoreInfo},
-		{colorCyan, "GPU", colorNormal, gpuInfo},
-		{colorCyan, "Memory", colorNormal, memoryInfo},
-		{colorCyan, "Disk", colorNormal, diskInfo},
-		{colorCyan, "Disk SMART", colorNormal, hostInfo.Disk.SmartStatus},
-		{colorCyan, "Battery", colorNormal, batteryInfo},
-		{colorCyan, "Battery health", colorNormal, hostInfo.Battery.Health},
-	}
-	info = append(info, displayLines...)
-	info = append(info, [][]string{
-		{colorCyan, "Terminal", colorNormal, hostInfo.Terminal},
-		{colorCyan, "Software", colorNormal, softwareInfo},
-		{colorCyan, "Public IP", colorNormal, hostInfo.PublicIP},
-		{colorCyan, "Uptime", colorNormal, hostInfo.Uptime},
-		{colorCyan, "Date/Time", colorNormal, hostInfo.Datetime},
-	}...)
-
-	/* ---------- Display the information ---------- */
-	if withLogo {
-		appleLogo := [][]string{
-			{colorGreen, "                    ##           "},
-			{colorGreen, "                  ####           "},
-			{colorGreen, "                #####            "},
-			{colorGreen, "               ####              "},
-			{colorGreen, "      ########   ############    "},
-			{colorGreen, "    ##########################   "},
-			{colorYellow, "  ###########################    "},
-			{colorYellow, "  ##########################     "},
-			{colorOrange, " ##########################      "},
-			{colorOrange, " ##########################      "},
-			{colorRed, " ###########################     "},
-			{colorRed, "  ############################   "},
-			{colorPurple, "  #############################  "},
-			{colorPurple, "   ############################  "},
-			{colorBlue, "     ########################    "},
-			{colorBlue, "      ######################     "},
-			{colorBlue, "        #######    #######       "},
-		}
-		lenLogoLine := len(appleLogo[0][1])
-
-		/* Here, we want to center the display of the logo and the information.
-		So we calculate a padding to be added to the top and bottom of either
-		the logo (if it has less lines than the information) or the information.
-		*/
-		lenAppleLogo := len(appleLogo)
-		lenInfo := len(info)
-		maxLines := max(lenAppleLogo, lenInfo)
-
-		if lenAppleLogo != lenInfo {
-			minLines := min(lenAppleLogo, lenInfo)
-			topPadding := (maxLines - minLines) / 2
-			bottomPadding := maxLines - minLines - topPadding
-			prependArr := make([][]string, 0)
-			appendArr := make([][]string, 0)
-
-			if lenAppleLogo > lenInfo {
-				emptyLine := []string{"", "", "", ""}
-				for i := 0; i < topPadding; i++ {
-					prependArr = append(prependArr, emptyLine)
-				}
-				info = append(prependArr, info...)
-				for i := 0; i < bottomPadding; i++ {
-					appendArr = append(appendArr, emptyLine)
-				}
-				info = append(info, appendArr...)
-			} else {
-				emptyLine := []string{"", strings.Repeat(" ", lenLogoLine)}
-				for i := 0; i < topPadding; i++ {
-					prependArr = append(prependArr, emptyLine)
-				}
-				appleLogo = append(prependArr, appleLogo...)
-				for i := 0; i < bottomPadding; i++ {
-					appendArr = append(appendArr, emptyLine)
-				}
-				appleLogo = append(appleLogo, appendArr...)
-			}
-		}
-
-		// Now we can display everything.
-		for i := 0; i < maxLines; i++ {
-			output.WriteString(fmt.Sprintf("%s%s%s%-15s%s%s\n",
-				appleLogo[i][0],
-				appleLogo[i][1],
-				info[i][0],
-				info[i][1],
-				info[i][2],
-				info[i][3],
-			))
-		}
-	} else {
-		// We just display the information, no logo.
-		for _, i := range info {
-			output.WriteString(fmt.Sprintf("%s%-15s%s%s\n",
-				i[0],
-				i[1],
-				i[2],
-				i[3],
-			))
-		}
-	}
-
-	fmt.Printf("%s", output.String())
-}
 
 func main() {
 	var err error
@@ -229,8 +22,11 @@ func main() {
 	refreshCacheFlag := flag.Bool("r", false, "Refresh cache (or create it if it doesn't exist)")
 	noCacheFlag := flag.Bool("n", false, "Don't use/update cache")
 	withLogoFlag := flag.Bool("l", true, "Display the ASCII art logo")
+	listItems := flag.Bool("i", false, "Display all available information to display")
 	showVersionFlag := flag.Bool("v", false, "Show version")
+	configFilePath := flag.String("c", filepath.Join(os.Getenv("HOME"), ".config", "minfo.yml"), "Path to the configuration file")
 	helpFlag := flag.Bool("h", false, "Show help")
+
 	flag.Parse()
 	haveCache := false
 
@@ -249,6 +45,54 @@ func main() {
 	if *noCacheFlag && *refreshCacheFlag {
 		log.Fatalf("Can't use both -r and -n flags")
 	}
+	if *listItems {
+		fmt.Println("Here is the list of all available information:")
+		slices.Sort(allItems)
+		for _, item := range allItems {
+			fmt.Printf("- %s\n", item)
+		}
+		os.Exit(0)
+	}
+
+	_, err = os.Stat(*configFilePath)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		log.Fatal("Cannot read configuration file")
+	} else if err == nil {
+		if config, err = loadConfig(*configFilePath); err != nil {
+			log.Fatalf("Error loading config file: %v", err)
+		}
+	}
+	if config == nil {
+		config = &Config{
+			CacheFilePath: defaultCacheFilePath,
+			Items:         defaultItems,
+		}
+	} else {
+		if len(config.Items) == 0 {
+			config.Items = defaultItems
+		} else {
+			// Check if all requested items are valid
+			for _, item := range config.Items {
+				if !slices.Contains(allItems, item) {
+					log.Fatalf("Invalid item: %s", item)
+				}
+			}
+			// Make sure there is no duplicate
+			config.Items = uniqueStrings(config.Items)
+		}
+		if config.CacheFilePath == "" {
+			config.CacheFilePath = defaultCacheFilePath
+		} else {
+			// Replace '~' with the home directory
+			if strings.HasPrefix(config.CacheFilePath, "~") {
+				homeDir, err := os.UserHomeDir()
+				if err != nil {
+					log.Fatalf("Error getting home directory: %v", err)
+				}
+				config.CacheFilePath = filepath.Join(homeDir, config.CacheFilePath[1:])
+			}
+		}
+	}
 
 	/*
 		We cache the following information, which are unlikely to change:
@@ -258,7 +102,7 @@ func main() {
 		readCacheFiles() reads the cache file and unmarshals it into hostInfo
 	*/
 	if !*refreshCacheFlag && !*noCacheFlag {
-		if err = readCacheFile(); err != nil {
+		if err = readCacheFile(config.CacheFilePath); err != nil {
 			if !errors.Is(err, os.ErrNotExist) && err != errEmptyCache {
 				log.Fatalf("Error reading cache file: %v", err)
 			}
@@ -267,15 +111,54 @@ func main() {
 		}
 	}
 
+	// Prepare the tasks to execute
 	var spErr error
-	tasks := []func(){
-		func() { spErr = fetchSystemProfiler(&hostInfo, haveCache) },
-		func() { hostInfo.Software.NumBrew = fetchNumHomebrew() },
-		func() { hostInfo.Software.NumApps = fetchNumApps() },
-		func() { hostInfo.Terminal = fetchTermProgram() },
-		func() { hostInfo.PublicIP = fetchPublicIp() },
+	tasks := []func(){}
+
+	// This is a quick help to know with an item as been requested or not
+	// (quicker than parsing config.Items each time)
+	reqItems := make(map[string]bool, len(config.Items))
+	for _, item := range allItems {
+		if slices.Contains(config.Items, item) {
+			reqItems[item] = true
+		} else {
+			reqItems[item] = false
+		}
 	}
-	if !haveCache {
+
+	// system_profiler items:
+	// - if !haveCache, then, fetch all SP items that are requested.
+	// - if haveCache, then, fetch only the SP items that are not cached.
+	alreadyDoneSP := false
+	for _, spItem := range spItemsNotCached {
+		if reqItems[spItem] {
+			tasks = append(tasks, func() { spErr = fetchSystemProfiler(&hostInfo, haveCache) })
+			alreadyDoneSP = true
+			break
+		}
+	}
+	if !haveCache && !alreadyDoneSP {
+		for _, spItem := range spItemsCached {
+			if reqItems[spItem] {
+				tasks = append(tasks, func() { spErr = fetchSystemProfiler(&hostInfo, haveCache) })
+				break
+			}
+		}
+	}
+
+	if reqItems["terminal"] {
+		tasks = append(tasks, func() { hostInfo.Terminal = fetchTermProgram() })
+	}
+	if reqItems["software"] {
+		tasks = append(tasks, func() { hostInfo.Software.NumApps = fetchNumApps() })
+		tasks = append(tasks, func() { hostInfo.Software.NumBrew = fetchNumHomebrew() })
+	}
+	if reqItems["public_ip"] {
+		tasks = append(tasks, func() { hostInfo.PublicIP = fetchPublicIp() })
+	}
+	// "model" needs both data from system_profiler and from ioreg
+	// system_profiler has been treaded above ...
+	if reqItems["model"] && !haveCache {
 		tasks = append(tasks, func() { hostInfo.Model.Name, hostInfo.Model.SubName, hostInfo.Model.Date = fetchModelYear() })
 	}
 
@@ -303,7 +186,7 @@ func main() {
 		printInfo(&hostInfo, *withLogoFlag)
 	}
 	if !haveCache && !*noCacheFlag {
-		if err = writeCacheFile(); err != nil {
+		if err = writeCacheFile(config.CacheFilePath); err != nil {
 			log.Fatalf("Error writing cache file: %v", err)
 		}
 	}

@@ -1,0 +1,11 @@
+---
+cache_file: ~/.minfo-cache.json
+items:
+  - user
+  - hostname
+  - model
+  - cpu
+  - gpu
+  - memory
+  - battery
+  - display

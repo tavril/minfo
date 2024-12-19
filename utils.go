@@ -18,7 +18,7 @@ func runCommand(cmd *exec.Cmd) (string, error) {
 	return out.String(), err
 }
 
-// which replicates the functionality of the "which" command
+// This function replicates the functionality of the "which" command
 func which(command string) (string, error) {
 	// Get the PATH environment variable
 	pathEnv := os.Getenv("PATH")
@@ -54,10 +54,36 @@ func getLine(lines [][]string, index int) string {
 	return ""
 }
 
-// Helper to calculate the maximum of two integers
+// This function returns the maximum of two integers
 func max(a, b int) int {
 	if a > b {
 		return a
 	}
 	return b
+}
+
+// This function returns the minimum of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+// This functions returns only the unique strings in a slice of strings
+func uniqueStrings(input []string) []string {
+	// Create a map to track seen elements
+	seen := make(map[string]bool)
+	result := []string{}
+
+	// Iterate over the input slice
+	for _, item := range input {
+		if !seen[item] {
+			// If the item is not in the map, add it to the result slice
+			seen[item] = true
+			result = append(result, item)
+		}
+	}
+
+	return result
 }
