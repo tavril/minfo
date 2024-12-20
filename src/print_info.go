@@ -11,6 +11,19 @@ func createInfoLine(requestedItem, info string) []string {
 	return []string{colorCyan, itemsConfig[requestedItem].Title, colorNormal, info}
 }
 
+// each info line gets a Title and information
+// This function calculates the padding size needed to align
+// the information of all the lines.
+func getPaddingSize(infoLines [][]string) int {
+	paddingSize := 0
+	for _, i := range infoLines {
+		if len(i[1]) > paddingSize {
+			paddingSize = len(i[1])
+		}
+	}
+	return paddingSize + 1
+}
+
 // Print the information in a human-readable format
 func printInfo(hostInfo *info, withLogo bool) {
 	var output strings.Builder
@@ -239,11 +252,13 @@ func printInfo(hostInfo *info, withLogo bool) {
 		}
 
 		/* ---------- Prepare the logo and the information ---------- */
+		dynamicPadding := getPaddingSize(infoLines)
 		for i := 0; i < maxLines; i++ {
-			output.WriteString(fmt.Sprintf("%s%s%s%-15s%s%s\n",
+			output.WriteString(fmt.Sprintf("%s%s%s%-*s%s%s\n",
 				appleLogoLines[i][0],
 				appleLogoLines[i][1],
 				infoLines[i][0],
+				dynamicPadding,
 				infoLines[i][1],
 				infoLines[i][2],
 				infoLines[i][3],
@@ -251,9 +266,11 @@ func printInfo(hostInfo *info, withLogo bool) {
 		}
 	} else {
 		/* ---------- Prepare only the information ---------- */
+		dynamicPadding := getPaddingSize(infoLines)
 		for _, i := range infoLines {
-			output.WriteString(fmt.Sprintf("%s%-15s%s%s\n",
+			output.WriteString(fmt.Sprintf("%s%-*s%s%s\n",
 				i[0],
+				dynamicPadding,
 				i[1],
 				i[2],
 				i[3],
