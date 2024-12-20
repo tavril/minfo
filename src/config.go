@@ -59,6 +59,7 @@ type SystemProfilerItem struct {
 // - SystemProfiler: information to fetch from system_profiler (SPDataType)
 // - retrieveCmd: a function to retrieve the information
 type Item struct {
+	Title          string
 	SystemProfiler SystemProfilerItem
 	retrieveCmd    NamedFunc
 }
@@ -67,102 +68,119 @@ type Item struct {
 // with how to fetch them.
 var itemsConfig = map[string]Item{
 	"user": {
+		Title: "User",
 		SystemProfiler: SystemProfilerItem{
 			IsCached: false,
 			DataType: "SPSoftwareDataType",
 		},
 	},
 	"hostname": {
+		Title: "Hostname",
 		SystemProfiler: SystemProfilerItem{
 			IsCached: false,
 			DataType: "SPSoftwareDataType",
 		},
 	},
 	"os": {
+		Title: "OS",
 		SystemProfiler: SystemProfilerItem{
 			IsCached: false,
 			DataType: "SPSoftwareDataType",
 		},
 	},
 	"system_integrity": {
+		Title: "macOS SIP",
 		SystemProfiler: SystemProfilerItem{
 			IsCached: false,
 			DataType: "SPSoftwareDataType",
 		},
 	},
 	"serial_number": {
+		Title: "Serial",
 		SystemProfiler: SystemProfilerItem{
 			IsCached: true,
 			DataType: "SPHardwareDataType",
 		},
 	},
 	"uptime": {
+		Title: "Uptime",
 		SystemProfiler: SystemProfilerItem{
 			IsCached: false,
 			DataType: "SPSoftwareDataType",
 		},
 	},
 	"model": {
+		Title: "Model",
 		SystemProfiler: SystemProfilerItem{
 			IsCached: true,
 			DataType: "SPHardwareDataType",
 		},
 	},
 	"cpu": {
+		Title: "CPU",
 		SystemProfiler: SystemProfilerItem{
 			IsCached: true,
 			DataType: "SPHardwareDataType",
 		},
 	},
 	"memory": {
+		Title: "Memory",
 		SystemProfiler: SystemProfilerItem{
 			IsCached: true,
 			DataType: "SPMemoryDataType",
 		},
 	},
 	"display": {
+		Title: "Display",
 		SystemProfiler: SystemProfilerItem{
 			IsCached: false,
 			DataType: "SPDisplaysDataType",
 		},
 	},
 	"gpu": {
+		Title: "GPU",
 		SystemProfiler: SystemProfilerItem{
 			IsCached: false,
 			DataType: "SPDisplaysDataType",
 		},
 	},
 	"battery": {
+		Title: "Battery",
 		SystemProfiler: SystemProfilerItem{
 			IsCached: false,
 			DataType: "SPPowerDataType",
 		},
 	},
 	"disk": {
+		Title: "Disk",
 		SystemProfiler: SystemProfilerItem{
 			IsCached: false,
 			DataType: "SPStorageDataType",
 		},
 	},
 	"terminal": {
+		Title: "Terminal",
 		retrieveCmd: NamedFunc{
 			Id:   "fetchTermProgram",
 			Func: fetchTermProgram,
 		},
 	},
 	"software": {
+		Title: "Software",
 		retrieveCmd: NamedFunc{
 			Id:   "fetchSoftware",
 			Func: fetchSoftware,
 		},
 	},
 	"public_ip": {
+		Title: "Public IP",
 		retrieveCmd: NamedFunc{
 			Id:   "fetchPublicIp",
 			Func: fetchPublicIp,
 		},
 	},
 	"datetime": {
+		Title: "Date/Time",
 		retrieveCmd: NamedFunc{
 			Id:   "fetchDateTime",
 			Func: fetchDateTime,

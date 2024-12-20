@@ -7,8 +7,8 @@ import (
 )
 
 // helper to create a line of information
-func createInfoLine(title, info string) []string {
-	return []string{colorCyan, title, colorNormal, info}
+func createInfoLine(requestedItem, info string) []string {
+	return []string{colorCyan, itemsConfig[requestedItem].Title, colorNormal, info}
 }
 
 // Print the information in a human-readable format
@@ -32,8 +32,9 @@ func printInfo(hostInfo *info, withLogo bool) {
 		colorCyan = "\033[00;36m"
 		colorOrange = "\033[00;91m"
 	}
-	// Each item of ìnfo` is a slice of strings which contains
-	// - Color code for the title
+	// Each item of infoLines is a slice of strings representing a line
+	// of information. Each line contains:
+	// - Color code for the Item title
 	// - Title
 	// - Color code for the information
 	// - infomation
@@ -43,13 +44,13 @@ func printInfo(hostInfo *info, withLogo bool) {
 	for _, requestedItem := range config.Items {
 		switch requestedItem {
 		case "user":
-			infoLines = append(infoLines, createInfoLine("User",
+			infoLines = append(infoLines, createInfoLine(requestedItem,
 				fmt.Sprintf("%s (%s)", hostInfo.User.RealName, hostInfo.User.Login),
 			))
 		case "hostname":
-			infoLines = append(infoLines, createInfoLine("Hostname", hostInfo.Hostname))
+			infoLines = append(infoLines, createInfoLine(requestedItem, hostInfo.Hostname))
 		case "os":
-			infoLines = append(infoLines, createInfoLine("OS",
+			infoLines = append(infoLines, createInfoLine(requestedItem,
 				fmt.Sprintf("%s %s %s (%s) %s %s",
 					hostInfo.Os.System,
 					hostInfo.Os.SystemVersionCodeNname,
@@ -63,11 +64,11 @@ func printInfo(hostInfo *info, withLogo bool) {
 			hostInfo.SystemIntegrity = capitalizeFirstLetter(
 				strings.TrimPrefix(hostInfo.SystemIntegrity, "integrity_"),
 			)
-			infoLines = append(infoLines, createInfoLine("macOS SIP", hostInfo.SystemIntegrity))
+			infoLines = append(infoLines, createInfoLine(requestedItem, hostInfo.SystemIntegrity))
 		case "serial_number":
-			infoLines = append(infoLines, createInfoLine("Serial Number", *hostInfo.SerialNumber))
+			infoLines = append(infoLines, createInfoLine(requestedItem, *hostInfo.SerialNumber))
 		case "model":
-			infoLines = append(infoLines, createInfoLine("Model",
+			infoLines = append(infoLines, createInfoLine(requestedItem,
 				fmt.Sprintf("%s %s (%s) %s",
 					hostInfo.Model.Name,
 					hostInfo.Model.SubName,
@@ -89,13 +90,13 @@ func printInfo(hostInfo *info, withLogo bool) {
 				// (Ex: "6-Core Intel Core i7")
 				cpuCoreInfo = fmt.Sprintf("%s", hostInfo.Cpu.Model)
 			}
-			infoLines = append(infoLines, createInfoLine("CPU", cpuCoreInfo))
+			infoLines = append(infoLines, createInfoLine(requestedItem, cpuCoreInfo))
 		case "gpu":
-			infoLines = append(infoLines, createInfoLine("GPU",
+			infoLines = append(infoLines, createInfoLine(requestedItem,
 				fmt.Sprintf("%d cores", *hostInfo.GpuCores),
 			))
 		case "memory":
-			infoLines = append(infoLines, createInfoLine("Memory",
+			infoLines = append(infoLines, createInfoLine(requestedItem,
 				fmt.Sprintf("%d %s %s",
 					hostInfo.Memory.Amount,
 					hostInfo.Memory.Unit,
@@ -103,13 +104,15 @@ func printInfo(hostInfo *info, withLogo bool) {
 				),
 			))
 		case "disk":
-			infoLines = append(infoLines, createInfoLine("Disk",
+			infoLines = append(infoLines, createInfoLine(requestedItem,
 				fmt.Sprintf("%.2f TB (%.2f TB available)",
 					hostInfo.Disk.TotalTB,
 					hostInfo.Disk.FreeTB,
 				),
 			))
-			infoLines = append(infoLines, createInfoLine("Disk SMART", hostInfo.Disk.SmartStatus))
+			tmp := createInfoLine(requestedItem, hostInfo.Disk.SmartStatus)
+			tmp[1] = fmt.Sprintf("%s SMART", tmp[1])
+			infoLines = append(infoLines, tmp)
 		case "battery":
 			var charging string
 			if hostInfo.Battery.Charging {
@@ -117,14 +120,16 @@ func printInfo(hostInfo *info, withLogo bool) {
 			} else {
 				charging = "(discharging)"
 			}
-			infoLines = append(infoLines, createInfoLine("Battery",
+			infoLines = append(infoLines, createInfoLine(requestedItem,
 				fmt.Sprintf("%d%% %s | %d%% capacity",
 					hostInfo.Battery.StatusPercent,
 					charging,
 					hostInfo.Battery.CapacityPercent,
 				),
 			))
-			infoLines = append(infoLines, createInfoLine("Battery health", hostInfo.Battery.Health))
+			tmp := createInfoLine(requestedItem, hostInfo.Battery.Health)
+			tmp[1] = fmt.Sprintf("%s health", tmp[1])
+			infoLines = append(infoLines, tmp)
 		case "display":
 			var displayInfo []string
 			for _, display := range hostInfo.Displays {
@@ -138,14 +143,14 @@ func printInfo(hostInfo *info, withLogo bool) {
 			}
 			displayLines := make([][]string, len(hostInfo.Displays))
 			for i, d := range displayInfo {
-				tmpStr := fmt.Sprintf("Display #%d", i+1)
-				displayLines[i] = createInfoLine(tmpStr, d)
+				displayLines[i] = createInfoLine(requestedItem, d)
+				displayLines[i][1] = fmt.Sprintf("%s #%d", displayLines[i][1], i+1)
 			}
 			infoLines = append(infoLines, displayLines...)
 		case "terminal":
-			infoLines = append(infoLines, createInfoLine("Terminal", hostInfo.Terminal))
+			infoLines = append(infoLines, createInfoLine(requestedItem, hostInfo.Terminal))
 		case "software":
-			infoLines = append(infoLines, createInfoLine("Software",
+			infoLines = append(infoLines, createInfoLine(requestedItem,
 				fmt.Sprintf("%d Apps | %d Formulae | %d Casks",
 					hostInfo.Software.NumApps,
 					hostInfo.Software.NumBrewFormulae,
@@ -155,9 +160,9 @@ func printInfo(hostInfo *info, withLogo bool) {
 		case "public_ip":
 			// Case we have a "Unknown" country (any error in function getPublicIpInfo)
 			if len(hostInfo.PublicIp.Country) == 0 {
-				infoLines = append(infoLines, createInfoLine("Public IP", hostInfo.PublicIp.IP))
+				infoLines = append(infoLines, createInfoLine(requestedItem, hostInfo.PublicIp.IP))
 			} else {
-				infoLines = append(infoLines, createInfoLine("Public IP",
+				infoLines = append(infoLines, createInfoLine(requestedItem,
 					fmt.Sprintf("%s (%s)",
 						hostInfo.PublicIp.IP,
 						hostInfo.PublicIp.Country,
@@ -165,9 +170,9 @@ func printInfo(hostInfo *info, withLogo bool) {
 				))
 			}
 		case "uptime":
-			infoLines = append(infoLines, createInfoLine("Uptime", hostInfo.Uptime))
+			infoLines = append(infoLines, createInfoLine(requestedItem, hostInfo.Uptime))
 		case "datetime":
-			infoLines = append(infoLines, createInfoLine("Date/Time", hostInfo.Datetime))
+			infoLines = append(infoLines, createInfoLine(requestedItem, hostInfo.Datetime))
 		}
 	}
 
