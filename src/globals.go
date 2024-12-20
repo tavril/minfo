@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"runtime"
 )
 
 var (
 	appName           = path.Base(os.Args[0])
+	arch              = runtime.GOARCH
 	defaultConfigFile = fmt.Sprintf("%s/.config/%s.yml", os.Getenv("HOME"), appName)
 	hostInfo          = info{}
 	GitCommit         string
