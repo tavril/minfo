@@ -19,25 +19,30 @@ type display struct {
 
 // Information that can be cached in file.
 // It is a subset of the info struct.
+type Model struct {
+	Name    string `json:"name"`
+	SubName string `json:"sub_name"`
+	Date    string `json:"date"`
+	Number  string `json:"number"`
+}
+type Cpu struct {
+	Model            string `json:"model"`
+	Cores            int    `json:"cores"`
+	PerformanceCores int    `json:"performance_cores"`
+	EfficiencyCores  int    `json:"efficiency_cores"`
+}
+type Memory struct {
+	Amount  int    `json:"amount"`
+	Unit    string `json:"unit"`
+	MemType string `json:"type"`
+}
+
+// I use pointers to struct to know if the sub-structs are set or not.
 type cachedInfo struct {
-	Model struct {
-		Name    string `json:"name"`
-		SubName string `json:"sub_name"`
-		Date    string `json:"date"`
-		Number  string `json:"number"`
-	} `json:"model"`
-	Cpu struct {
-		Model            string `json:"model"`
-		Cores            int    `json:"cores"`
-		PerformanceCores int    `json:"performance_cores"`
-		EfficiencyCores  int    `json:"efficiency_cores"`
-	} `json:"cpu"`
-	GpuCores int `json:"gpu_cores"`
-	Memory   struct {
-		Amount  int    `json:"amount"`
-		Unit    string `json:"unit"`
-		MemType string `json:"type"`
-	} `json:"memory"`
+	Model    *Model  `json:"model,omitempty"`
+	Cpu      *Cpu    `json:"cpu,omitempty"`
+	GpuCores *int    `json:"gpu_cores,omitempty"`
+	Memory   *Memory `json:"memory,omitempty"`
 }
 
 // info contains all the information that the tool can retrieve.

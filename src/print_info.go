@@ -85,7 +85,7 @@ func printInfo(hostInfo *info, withLogo bool) {
 			info = append(info, createInfoLine("CPU", cpuCoreInfo))
 		case "gpu":
 			info = append(info, createInfoLine("GPU",
-				fmt.Sprintf("%d cores", hostInfo.GpuCores),
+				fmt.Sprintf("%d cores", *hostInfo.GpuCores),
 			))
 		case "memory":
 			info = append(info, createInfoLine("Memory",

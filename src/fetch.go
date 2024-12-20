@@ -44,28 +44,45 @@ func fetchSystemProfiler(hostInfo *info, spDataTypes map[string]bool, haveCache 
 	/* ---------- Parse the output of system_profiler ---------- */
 
 	// If we don't use cache, we need to parse the system_profiler for cached information
-	if !haveCache {
-		if slices.Contains(config.Items, "model") {
-			hostInfo.Model.Number = spInfo.Hardware[0].ModelNumber
-		}
+	// note: we can run into the case where the first time the program is run, the user
+	// only requested a subset of the information, so that the cache file is created
+	// with the "cachedInfo" struct that might contains non-set fields (string="", int=0, etc.)
+	// --> that why we need to check if the fields are set or not.
+	if slices.Contains(config.Items, "model") {
+		if !haveCache || hostInfo.Model == nil {
+			// We also have to call ioreg to get all the information about the model
 
-		if slices.Contains(config.Items, "cpu") {
+			hostInfo.Model = &Model{}
+			fetchModelYear(hostInfo.Model)
+			(*hostInfo.Model).Number = spInfo.Hardware[0].ModelNumber
+		}
+	}
+
+	if slices.Contains(config.Items, "cpu") {
+		if !haveCache || hostInfo.Cpu == nil {
 			cpuCoreInfoArr := strings.Split(strings.Split(spInfo.Hardware[0].NumProc, " ")[1], ":")
-			hostInfo.Cpu.Model = spInfo.Displays[0].Name
-			hostInfo.Cpu.Cores, _ = strconv.Atoi(cpuCoreInfoArr[0])
-			hostInfo.Cpu.PerformanceCores, _ = strconv.Atoi(cpuCoreInfoArr[1])
-			hostInfo.Cpu.EfficiencyCores, _ = strconv.Atoi(cpuCoreInfoArr[2])
+			hostInfo.Cpu = &Cpu{}
+			(*hostInfo.Cpu).Model = spInfo.Displays[0].Name
+			(*hostInfo.Cpu).Cores, _ = strconv.Atoi(cpuCoreInfoArr[0])
+			(*hostInfo.Cpu).PerformanceCores, _ = strconv.Atoi(cpuCoreInfoArr[1])
+			(*hostInfo.Cpu).EfficiencyCores, _ = strconv.Atoi(cpuCoreInfoArr[2])
 		}
+	}
 
-		if slices.Contains(config.Items, "gpu") {
-			hostInfo.GpuCores, _ = strconv.Atoi(spInfo.Displays[0].NumCores)
+	if slices.Contains(config.Items, "gpu") {
+		if !haveCache || hostInfo.GpuCores == nil {
+			tmp, _ := strconv.Atoi(spInfo.Displays[0].NumCores)
+			hostInfo.GpuCores = &tmp
 		}
+	}
 
-		if slices.Contains(config.Items, "memory") {
+	if slices.Contains(config.Items, "memory") {
+		if !haveCache || hostInfo.Memory == nil {
 			memUnit := strings.Split(spInfo.Memory[0].Amount, " ")
-			hostInfo.Memory.Amount, _ = strconv.Atoi(memUnit[0])
-			hostInfo.Memory.Unit = memUnit[1]
-			hostInfo.Memory.MemType = spInfo.Memory[0].Type
+			hostInfo.Memory = &Memory{}
+			(*hostInfo.Memory).Amount, _ = strconv.Atoi(memUnit[0])
+			(*hostInfo.Memory).Unit = memUnit[1]
+			(*hostInfo.Memory).MemType = spInfo.Memory[0].Type
 		}
 	}
 
@@ -220,9 +237,9 @@ func fetchTermProgram(hostInfo *info) {
 
 // Fetch the model of the Mac.
 // It comes in the form "MacBook Pro (16-inch, Nov 2024)".
-func fetchModelYear(hostInfo *info) {
+func fetchModelYear(model *Model) {
 	var out bytes.Buffer
-	hostInfo.Model.Name = "Unknown"
+	model.Name = "Unknown"
 	cmd := exec.Command("/usr/sbin/ioreg", "-arc", "IOPlatformDevice", "-k", "product-name")
 	cmd.Stdout = &out
 	err := cmd.Run()
@@ -246,9 +263,9 @@ func fetchModelYear(hostInfo *info) {
 
 	if len(matches) == 4 {
 		// "MacBook Pro" "16-inch" "Nov 2024"
-		hostInfo.Model.Name = matches[1]
-		hostInfo.Model.SubName = matches[2]
-		hostInfo.Model.Date = matches[3]
+		model.Name = matches[1]
+		model.SubName = matches[2]
+		model.Date = matches[3]
 	}
 	return
 }

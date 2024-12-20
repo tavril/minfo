@@ -38,6 +38,11 @@ items:
 A cache file is used to store the information that is unlikely to change:
 computer model, CPU and GPU, and memory. You can change the location of
 this file in the configuration file by addind a "cache_file" key.
+Example
+
+---
+cache_file: ~/minfo-cache.json
+
 The default location of the cache file is %s.
 You can also decide to not use the cache with the -n flag, or to force refresh
 the cache with the -r flag.
@@ -132,8 +137,6 @@ func main() {
 			if !errors.Is(err, os.ErrNotExist) && err != errEmptyCache {
 				log.Fatalf("Error reading cache file: %v", err)
 			}
-		} else {
-			haveCache = true
 		}
 	}
 

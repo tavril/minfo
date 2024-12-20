@@ -93,10 +93,6 @@ var itemsConfig = map[string]Item{
 			IsCached: true,
 			DataType: "SPHardwareDataType",
 		},
-		retrieveCmd: NamedFunc{
-			Id:   "fetchModelYear",
-			Func: fetchModelYear,
-		},
 	},
 	"cpu": {
 		SystemProfiler: SystemProfilerItem{

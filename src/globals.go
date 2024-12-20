@@ -22,14 +22,3 @@ var (
 	colorCyan   string
 	colorOrange string
 )
-
-// For items to be retrieved by calling system_profiler
-// we have a mapping of the information we need to fetch
-var spInfoMapping = map[string][]string{
-	"SPHardwareDataType": {"model", "cpu"},
-	"SPSoftwareDataType": {"user", "hostname", "os", "uptime"},
-	"SPDisplaysDataType": {"display", "gpu"},
-	"SPPowerDataType":    {"battery"},
-	"SPMemoryDataType":   {"memory"},
-	"SPStorageDataType":  {"disk"},
-}
