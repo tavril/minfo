@@ -14,21 +14,29 @@ minfo(1) -- display information about your Apple computer
 ## DESCRIPTION
 
 **minfo** displays some information about the computer it runs on.
-It only supports Apple computers running macOS.
+It is meant to be run on system running macOS only.
 
 By default it will displays an Apple ASCII art logo alongside the information.
 
+Unless specified otherwise, a cache file is used to cache information
+unlikely to change:
+- model,
+- serial number,
+- CPU,
+- GPU,
+- Memory
+
+The ASCII art logo support both 16 and 256 colors terminal.
 
 ## OPTIONS
 
   * `-c _config-file_`:
     Path to the configuration file to use.
-    It is optional. If there is no configuration file,
-    default choices will be made.
+    Optional. If there is no configuration file, default choices will be made.
     Default: `~/.minfo.yaml`.
 
   * `-j`:
-    Displays the information as JSON.
+    Displays the information as JSON instead plain text.
 
   * `-n`:
     Do not use the cache.
@@ -36,7 +44,7 @@ By default it will displays an Apple ASCII art logo alongside the information.
     Default: false.
 
   * `-r`:
-    Refresh the cache.
+    Like `-n`, but write the cache file with new fetched information.
     Mutualy exclusive with `-n`.
     Default: false.
 

@@ -36,20 +36,20 @@ func printInfo(hostInfo *info, withLogo bool) {
 	// - Color code for the title
 	// - Title
 	// - Color code for the information
-	// - Information
-	info := [][]string{}
+	// - infomation
+	infoLines := [][]string{}
 
 	/* ---------- Create the information lines ---------- */
 	for _, requestedItem := range config.Items {
 		switch requestedItem {
 		case "user":
-			info = append(info, createInfoLine("User",
+			infoLines = append(infoLines, createInfoLine("User",
 				fmt.Sprintf("%s (%s)", hostInfo.User.RealName, hostInfo.User.Login),
 			))
 		case "hostname":
-			info = append(info, createInfoLine("Hostname", hostInfo.Hostname))
+			infoLines = append(infoLines, createInfoLine("Hostname", hostInfo.Hostname))
 		case "os":
-			info = append(info, createInfoLine("OS",
+			infoLines = append(infoLines, createInfoLine("OS",
 				fmt.Sprintf("%s %s %s (%s) %s %s",
 					hostInfo.Os.System,
 					hostInfo.Os.SystemVersionCodeNname,
@@ -63,11 +63,11 @@ func printInfo(hostInfo *info, withLogo bool) {
 			hostInfo.SystemIntegrity = capitalizeFirstLetter(
 				strings.TrimPrefix(hostInfo.SystemIntegrity, "integrity_"),
 			)
-			info = append(info, createInfoLine("Sys. Integrity", hostInfo.SystemIntegrity))
+			infoLines = append(infoLines, createInfoLine("macOS SIP", hostInfo.SystemIntegrity))
 		case "serial_number":
-			info = append(info, createInfoLine("Serial Number", *hostInfo.SerialNumber))
+			infoLines = append(infoLines, createInfoLine("Serial Number", *hostInfo.SerialNumber))
 		case "model":
-			info = append(info, createInfoLine("Model",
+			infoLines = append(infoLines, createInfoLine("Model",
 				fmt.Sprintf("%s %s (%s) %s",
 					hostInfo.Model.Name,
 					hostInfo.Model.SubName,
@@ -89,13 +89,13 @@ func printInfo(hostInfo *info, withLogo bool) {
 				// (Ex: "6-Core Intel Core i7")
 				cpuCoreInfo = fmt.Sprintf("%s", hostInfo.Cpu.Model)
 			}
-			info = append(info, createInfoLine("CPU", cpuCoreInfo))
+			infoLines = append(infoLines, createInfoLine("CPU", cpuCoreInfo))
 		case "gpu":
-			info = append(info, createInfoLine("GPU",
+			infoLines = append(infoLines, createInfoLine("GPU",
 				fmt.Sprintf("%d cores", *hostInfo.GpuCores),
 			))
 		case "memory":
-			info = append(info, createInfoLine("Memory",
+			infoLines = append(infoLines, createInfoLine("Memory",
 				fmt.Sprintf("%d %s %s",
 					hostInfo.Memory.Amount,
 					hostInfo.Memory.Unit,
@@ -103,13 +103,13 @@ func printInfo(hostInfo *info, withLogo bool) {
 				),
 			))
 		case "disk":
-			info = append(info, createInfoLine("Disk",
+			infoLines = append(infoLines, createInfoLine("Disk",
 				fmt.Sprintf("%.2f TB (%.2f TB available)",
 					hostInfo.Disk.TotalTB,
 					hostInfo.Disk.FreeTB,
 				),
 			))
-			info = append(info, createInfoLine("Disk SMART", hostInfo.Disk.SmartStatus))
+			infoLines = append(infoLines, createInfoLine("Disk SMART", hostInfo.Disk.SmartStatus))
 		case "battery":
 			var charging string
 			if hostInfo.Battery.Charging {
@@ -117,14 +117,14 @@ func printInfo(hostInfo *info, withLogo bool) {
 			} else {
 				charging = "(discharging)"
 			}
-			info = append(info, createInfoLine("Battery",
+			infoLines = append(infoLines, createInfoLine("Battery",
 				fmt.Sprintf("%d%% %s | %d%% capacity",
 					hostInfo.Battery.StatusPercent,
 					charging,
 					hostInfo.Battery.CapacityPercent,
 				),
 			))
-			info = append(info, createInfoLine("Battery health", hostInfo.Battery.Health))
+			infoLines = append(infoLines, createInfoLine("Battery health", hostInfo.Battery.Health))
 		case "display":
 			var displayInfo []string
 			for _, display := range hostInfo.Displays {
@@ -141,11 +141,11 @@ func printInfo(hostInfo *info, withLogo bool) {
 				tmpStr := fmt.Sprintf("Display #%d", i+1)
 				displayLines[i] = createInfoLine(tmpStr, d)
 			}
-			info = append(info, displayLines...)
+			infoLines = append(infoLines, displayLines...)
 		case "terminal":
-			info = append(info, createInfoLine("Terminal", hostInfo.Terminal))
+			infoLines = append(infoLines, createInfoLine("Terminal", hostInfo.Terminal))
 		case "software":
-			info = append(info, createInfoLine("Software",
+			infoLines = append(infoLines, createInfoLine("Software",
 				fmt.Sprintf("%d Apps | %d Formulae | %d Casks",
 					hostInfo.Software.NumApps,
 					hostInfo.Software.NumBrewFormulae,
@@ -153,11 +153,11 @@ func printInfo(hostInfo *info, withLogo bool) {
 				),
 			))
 		case "public_ip":
-			// Case we have a "Unknown" country...
+			// Case we have a "Unknown" country (any error in function getPublicIpInfo)
 			if len(hostInfo.PublicIp.Country) == 0 {
-				info = append(info, createInfoLine("Public IP", hostInfo.PublicIp.IP))
+				infoLines = append(infoLines, createInfoLine("Public IP", hostInfo.PublicIp.IP))
 			} else {
-				info = append(info, createInfoLine("Public IP",
+				infoLines = append(infoLines, createInfoLine("Public IP",
 					fmt.Sprintf("%s (%s)",
 						hostInfo.PublicIp.IP,
 						hostInfo.PublicIp.Country,
@@ -165,15 +165,15 @@ func printInfo(hostInfo *info, withLogo bool) {
 				))
 			}
 		case "uptime":
-			info = append(info, createInfoLine("Uptime", hostInfo.Uptime))
+			infoLines = append(infoLines, createInfoLine("Uptime", hostInfo.Uptime))
 		case "datetime":
-			info = append(info, createInfoLine("Date/Time", hostInfo.Datetime))
+			infoLines = append(infoLines, createInfoLine("Date/Time", hostInfo.Datetime))
 		}
 	}
 
 	/* ---------- Display the information ---------- */
 	if withLogo {
-		appleLogo := [][]string{
+		appleLogoLines := [][]string{
 			{colorGreen, "                    ##           "},
 			{colorGreen, "                  ####           "},
 			{colorGreen, "                #####            "},
@@ -192,61 +192,61 @@ func printInfo(hostInfo *info, withLogo bool) {
 			{colorBlue, "      ######################     "},
 			{colorBlue, "        #######    #######       "},
 		}
-		lenLogoLine := len(appleLogo[0][1])
+		lenLogoLine := len(appleLogoLines[0][1])
 
 		/* ---------- Vertically center the logo and the information ---------- */
 		// Here, we want to vertically center the display of
 		//the logo and the information. So we calculate a padding to be added
 		// to the top and bottom of either the logo or the information,
 		// depending on which one is shorter.
-		lenAppleLogo := len(appleLogo)
-		lenInfo := len(info)
-		maxLines := max(lenAppleLogo, lenInfo)
+		lenAppleLogoLines := len(appleLogoLines)
+		lenInfoLines := len(infoLines)
+		maxLines := max(lenAppleLogoLines, lenInfoLines)
 
-		if lenAppleLogo != lenInfo {
-			minLines := min(lenAppleLogo, lenInfo)
+		if lenAppleLogoLines != lenInfoLines {
+			minLines := min(lenAppleLogoLines, lenInfoLines)
 			topPadding := (maxLines - minLines) / 2
 			bottomPadding := maxLines - minLines - topPadding
 			prependArr := make([][]string, 0)
 			appendArr := make([][]string, 0)
 
-			if lenAppleLogo > lenInfo {
+			if lenAppleLogoLines > lenInfoLines {
 				emptyLine := []string{"", "", "", ""}
 				for i := 0; i < topPadding; i++ {
 					prependArr = append(prependArr, emptyLine)
 				}
-				info = append(prependArr, info...)
+				infoLines = append(prependArr, infoLines...)
 				for i := 0; i < bottomPadding; i++ {
 					appendArr = append(appendArr, emptyLine)
 				}
-				info = append(info, appendArr...)
+				infoLines = append(infoLines, appendArr...)
 			} else {
 				emptyLine := []string{"", strings.Repeat(" ", lenLogoLine)}
 				for i := 0; i < topPadding; i++ {
 					prependArr = append(prependArr, emptyLine)
 				}
-				appleLogo = append(prependArr, appleLogo...)
+				appleLogoLines = append(prependArr, appleLogoLines...)
 				for i := 0; i < bottomPadding; i++ {
 					appendArr = append(appendArr, emptyLine)
 				}
-				appleLogo = append(appleLogo, appendArr...)
+				appleLogoLines = append(appleLogoLines, appendArr...)
 			}
 		}
 
 		/* ---------- Prepare the logo and the information ---------- */
 		for i := 0; i < maxLines; i++ {
 			output.WriteString(fmt.Sprintf("%s%s%s%-15s%s%s\n",
-				appleLogo[i][0],
-				appleLogo[i][1],
-				info[i][0],
-				info[i][1],
-				info[i][2],
-				info[i][3],
+				appleLogoLines[i][0],
+				appleLogoLines[i][1],
+				infoLines[i][0],
+				infoLines[i][1],
+				infoLines[i][2],
+				infoLines[i][3],
 			))
 		}
 	} else {
 		/* ---------- Prepare only the information ---------- */
-		for _, i := range info {
+		for _, i := range infoLines {
 			output.WriteString(fmt.Sprintf("%s%-15s%s%s\n",
 				i[0],
 				i[1],

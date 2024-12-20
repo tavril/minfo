@@ -6,22 +6,37 @@
 .SH "SYNOPSIS"
 \fBminfo\fR \fBminfo\fR \fB\-j\fR \fBminfo\fR \fB\-n\fR \fBminfo\fR \fB\-r\fR \fBminfo\fR \fB\-l=false\fR \fBminfo\fR \fB\-i\fR \fBminfo\fR \fB\-c\fR \fIconfig\-file\fR
 .SH "DESCRIPTION"
-\fBminfo\fR displays some information about the computer it runs on\. It only supports Apple computers running macOS\.
+\fBminfo\fR displays some information about the computer it runs on\. It is meant to be run on system running macOS only\.
 .P
 By default it will displays an Apple ASCII art logo alongside the information\.
+.P
+Unless specified otherwise, a cache file is used to cache information unlikely to change:
+.IP "\(bu" 4
+model,
+.IP "\(bu" 4
+serial number,
+.IP "\(bu" 4
+CPU,
+.IP "\(bu" 4
+GPU,
+.IP "\(bu" 4
+Memory
+.IP "" 0
+.P
+The ASCII art logo support both 16 and 256 colors terminal\.
 .SH "OPTIONS"
 .TP
 \fB\-c _config\-file_\fR
-Path to the configuration file to use\. It is optional\. If there is no configuration file, default choices will be made\. Default: \fB~/\.minfo\.yaml\fR\.
+Path to the configuration file to use\. Optional\. If there is no configuration file, default choices will be made\. Default: \fB~/\.minfo\.yaml\fR\.
 .TP
 \fB\-j\fR
-Displays the information as JSON\.
+Displays the information as JSON instead plain text\.
 .TP
 \fB\-n\fR
 Do not use the cache\. Mutualy exclusive with \fB\-r\fR\. Default: false\.
 .TP
 \fB\-r\fR
-Refresh the cache\. Mutualy exclusive with \fB\-n\fR\. Default: false\.
+Like \fB\-n\fR, but write the cache file with new fetched information\. Mutualy exclusive with \fB\-n\fR\. Default: false\.
 .TP
 \fB\-l\fR, \fB\-l=false\fR
 Do not display the ASCII art image\. Default: false\.

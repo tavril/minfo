@@ -75,7 +75,7 @@ func main() {
 		os.Exit(0)
 	}
 	if *showVersionFlag {
-		fmt.Printf("minfo version %s (commit %s)\n", GitVersion, GitCommit)
+		fmt.Printf("minfo %s (commit %s)\n", GitVersion, GitCommit)
 		os.Exit(0)
 	}
 	if *noCacheFlag && *refreshCacheFlag {
