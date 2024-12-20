@@ -39,18 +39,12 @@ type Memory struct {
 
 // I use pointers to struct to know if the sub-structs are set or not.
 type cachedInfo struct {
-	Model    *Model  `json:"model,omitempty"`
-	Cpu      *Cpu    `json:"cpu,omitempty"`
-	GpuCores *int    `json:"gpu_cores,omitempty"`
-	Memory   *Memory `json:"memory,omitempty"`
+	Model        *Model  `json:"model,omitempty"`
+	Cpu          *Cpu    `json:"cpu,omitempty"`
+	GpuCores     *int    `json:"gpu_cores,omitempty"`
+	Memory       *Memory `json:"memory,omitempty"`
+	SerialNumber *string `json:"serial_number,omitempty"`
 }
-
-/*
-type PublicIp struct {
-	IP      string `json:"query"`
-	Country string `json:"country"`
-}
-*/
 
 // info contains all the information that the tool can retrieve.
 type info struct {
@@ -68,7 +62,8 @@ type info struct {
 		KernelType             string `json:"kernel_type"`
 		KernelVersion          string `json:"kernel_version"`
 	} `json:"os"`
-	Disk struct {
+	SystemIntegrity string `json:"system_integrity"`
+	Disk            struct {
 		TotalTB     float32 `json:"total_tb"`
 		FreeTB      float32 `json:"free_tb"`
 		SmartStatus string  `json:"smart_status"`
@@ -88,7 +83,6 @@ type info struct {
 	Terminal string `json:"terminal"`
 	Uptime   string `json:"uptime"`
 	Datetime string `json:"datetime"`
-	//PublicIp PublicIp `json:"public_ip"`
 	PublicIp struct {
 		IP      string `json:"query"`
 		Country string `json:"country"`
@@ -122,6 +116,7 @@ type systemProfilerInfo struct {
 		MachineModel string `json:"machine_model"`
 		ModelNumber  string `json:"model_number"`
 		NumProc      string `json:"number_processors"`
+		SerialNumber string `json:"serial_number"`
 	} `json:"SPHardwareDataType"`
 
 	Power []struct {

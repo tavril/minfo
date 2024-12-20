@@ -59,6 +59,13 @@ func printInfo(hostInfo *info, withLogo bool) {
 					hostInfo.Os.KernelVersion,
 				),
 			))
+		case "system_integrity":
+			hostInfo.SystemIntegrity = capitalizeFirstLetter(
+				strings.TrimPrefix(hostInfo.SystemIntegrity, "integrity_"),
+			)
+			info = append(info, createInfoLine("Sys. Integrity", hostInfo.SystemIntegrity))
+		case "serial_number":
+			info = append(info, createInfoLine("Serial Number", *hostInfo.SerialNumber))
 		case "model":
 			info = append(info, createInfoLine("Model",
 				fmt.Sprintf("%s %s (%s) %s",

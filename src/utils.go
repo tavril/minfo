@@ -18,6 +18,14 @@ func runCommand(cmd *exec.Cmd) (string, error) {
 	return out.String(), err
 }
 
+// capitalizeFirstLetter capitalizes the first letter of a string
+func capitalizeFirstLetter(s string) string {
+	if len(s) == 0 {
+		return s // Return an empty string if input is empty
+	}
+	return strings.ToUpper(string(s[0])) + s[1:]
+}
+
 // This function replicates the functionality of the "which" command
 func which(command string) (string, error) {
 	pathEnv := os.Getenv("PATH")

@@ -21,6 +21,8 @@ var defaultItems = []string{
 	"user",
 	"hostname",
 	"os",
+	"system_integrity",
+	"serial_number",
 	"model",
 	"cpu",
 	"gpu",
@@ -80,6 +82,18 @@ var itemsConfig = map[string]Item{
 		SystemProfiler: SystemProfilerItem{
 			IsCached: false,
 			DataType: "SPSoftwareDataType",
+		},
+	},
+	"system_integrity": {
+		SystemProfiler: SystemProfilerItem{
+			IsCached: false,
+			DataType: "SPSoftwareDataType",
+		},
+	},
+	"serial_number": {
+		SystemProfiler: SystemProfilerItem{
+			IsCached: true,
+			DataType: "SPHardwareDataType",
 		},
 	},
 	"uptime": {

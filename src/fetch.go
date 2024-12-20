@@ -124,6 +124,16 @@ func fetchSystemProfiler(hostInfo *info, spDataTypes map[string]bool, haveCache 
 		}
 	}
 
+	if slices.Contains(config.Items, "system_integrity") {
+		hostInfo.SystemIntegrity = spInfo.Software[0].SystemIntegrity
+	}
+
+	if slices.Contains(config.Items, "serial_number") {
+		if !haveCache || hostInfo.SerialNumber == nil {
+			hostInfo.SerialNumber = &spInfo.Hardware[0].SerialNumber
+		}
+	}
+
 	if slices.Contains(config.Items, "disk") {
 		for _, hd := range spInfo.Storage {
 			if hd.MountPoint == "/" {
