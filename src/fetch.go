@@ -270,20 +270,28 @@ func fetchModelYear(model *Model) {
 	return
 }
 
-// Fetch the public IP address using http://ident.me
+// Fetch the public IP address (and its country name)
 func fetchPublicIp(hostInfo *info) {
-	hostInfo.PublicIP = "Unknown"
+	hostInfo.PublicIp.IP = "Unknown"
 	client := &http.Client{
 		Timeout: 500 * time.Millisecond,
 	}
-	resp, err := client.Get("http://ident.me")
+	resp, err := client.Get("http://ip-api.com/json")
 	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
 		return
 	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return
 	}
-	hostInfo.PublicIP = string(body)
+
+	if err = json.Unmarshal(body, &hostInfo.PublicIp); err != nil {
+		return
+	}
+
 	return
 }

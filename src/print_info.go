@@ -146,7 +146,17 @@ func printInfo(hostInfo *info, withLogo bool) {
 				),
 			))
 		case "public_ip":
-			info = append(info, createInfoLine("Public IP", hostInfo.PublicIP))
+			// Case we have a "Unknown" country...
+			if len(hostInfo.PublicIp.Country) == 0 {
+				info = append(info, createInfoLine("Public IP", hostInfo.PublicIp.IP))
+			} else {
+				info = append(info, createInfoLine("Public IP",
+					fmt.Sprintf("%s (%s)",
+						hostInfo.PublicIp.IP,
+						hostInfo.PublicIp.Country,
+					),
+				))
+			}
 		case "uptime":
 			info = append(info, createInfoLine("Uptime", hostInfo.Uptime))
 		case "datetime":

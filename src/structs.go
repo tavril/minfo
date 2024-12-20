@@ -45,6 +45,13 @@ type cachedInfo struct {
 	Memory   *Memory `json:"memory,omitempty"`
 }
 
+/*
+type PublicIp struct {
+	IP      string `json:"query"`
+	Country string `json:"country"`
+}
+*/
+
 // info contains all the information that the tool can retrieve.
 type info struct {
 	cachedInfo
@@ -81,7 +88,11 @@ type info struct {
 	Terminal string `json:"terminal"`
 	Uptime   string `json:"uptime"`
 	Datetime string `json:"datetime"`
-	PublicIP string `json:"public_ip"`
+	//PublicIp PublicIp `json:"public_ip"`
+	PublicIp struct {
+		IP      string `json:"query"`
+		Country string `json:"country"`
+	} `json:"public_ip"`
 }
 
 // systemProfileInfo contains all the information
