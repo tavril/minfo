@@ -31,10 +31,10 @@ func printInfo(hostInfo *info, withLogo bool) {
 	if strings.Contains(os.Getenv("TERM"), "256") {
 		colorRed = "\033[38;5;160m"
 		colorGreen = "\033[38;5;028m"
-		colorYellow = "\033[38;5;226m"
+		colorYellow = "\033[38;5;220m"
 		colorBlue = "\033[38;5;021m"
 		colorPurple = "\033[38;5;054m"
-		colorCyan = "\033[38;5;075m"
+		colorCyan = "\033[38;5;039m"
 		colorOrange = "\033[38;5;202m"
 	} else {
 		colorRed = "\033[00;31m"
