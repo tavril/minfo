@@ -4,12 +4,15 @@
 .SH "NAME"
 \fBminfo\fR \- display information about your Apple computer
 .SH "SYNOPSIS"
-\fBminfo\fR \fBminfo\fR \fB\-j\fR \fBminfo\fR \fB\-n\fR \fBminfo\fR \fB\-r\fR \fBminfo\fR \fB\-l=false\fR
+\fBminfo\fR \fBminfo\fR \fB\-j\fR \fBminfo\fR \fB\-n\fR \fBminfo\fR \fB\-r\fR \fBminfo\fR \fB\-l=false\fR \fBminfo\fR \fB\-i\fR \fBminfo\fR \fB\-c\fR \fIconfig\-file\fR
 .SH "DESCRIPTION"
 \fBminfo\fR displays some information about the computer it runs on\. It only supports Apple computers running macOS\.
 .P
 By default it will displays an Apple ASCII art logo alongside the information\.
 .SH "OPTIONS"
+.TP
+\fB\-c _config\-file_\fR
+Path to the configuration file to use\. It is optional\. If there is no configuration file, default choices will be made\. Default: \fB~/\.minfo\.yaml\fR\.
 .TP
 \fB\-j\fR
 Displays the information as JSON\.
@@ -25,9 +28,6 @@ Do not display the ASCII art image\. Default: false\.
 .TP
 \fB\-i\fR
 Displays the list of all available items to be displayed\.
-.TP
-\fB\-c\fR
-Path to the configuration file to use\.
 .TP
 \fB\-v\fR
 Displays the version of \fBminfo\fR\.

@@ -8,6 +8,8 @@ minfo(1) -- display information about your Apple computer
 `minfo` `-n`
 `minfo` `-r`
 `minfo` `-l=false`
+`minfo` `-i`
+`minfo` `-c` _config-file_
 
 ## DESCRIPTION
 
@@ -18,6 +20,12 @@ By default it will displays an Apple ASCII art logo alongside the information.
 
 
 ## OPTIONS
+
+  * `-c _config-file_`:
+    Path to the configuration file to use.
+    It is optional. If there is no configuration file,
+    default choices will be made.
+    Default: `~/.minfo.yaml`.
 
   * `-j`:
     Displays the information as JSON.
@@ -38,9 +46,6 @@ By default it will displays an Apple ASCII art logo alongside the information.
 
   * `-i`:
     Displays the list of all available items to be displayed.
-
-  * `-c`:
-    Path to the configuration file to use.
 
   * `-v`:
     Displays the version of **minfo**.
