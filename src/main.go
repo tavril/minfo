@@ -11,10 +11,41 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"sync"
 )
+
+func help() {
+	fmt.Printf(`
+%s is a tool to display information about the host system.
+It only works on MacOs.
+
+By default, it display an ASCII art logo alonside the information.
+You can choose to only display the information (-l=false), or
+you can choose to display the information in JSON format (-j).
+
+There is a default set of information to display, but you can
+customize this list in a configuration file. To list all available
+information to display, use the -i flag.
+By default, the configuration file is located at %s.
+Example:
+
+---
+items:
+  - os
+  - model
+
+A cache file is used to store the information that is unlikely to change:
+computer model, CPU and GPU, and memory. You can change the location of
+this file in the configuration file by addind a "cache_file" key.
+The default location of the cache file is %s.
+You can also decide to not use the cache with the -n flag, or to force refresh
+the cache with the -r flag.
+
+`, appName, defaultConfigFile, defaultCacheFilePath)
+	fmt.Println("Usage:")
+	flag.PrintDefaults()
+}
 
 func main() {
 	var err error
@@ -26,7 +57,7 @@ func main() {
 	withLogoFlag := flag.Bool("l", true, "Display the ASCII art logo")
 	listItems := flag.Bool("i", false, "Display all available information to display")
 	showVersionFlag := flag.Bool("v", false, "Show version")
-	configFilePath := flag.String("c", filepath.Join(os.Getenv("HOME"), ".config", "minfo.yml"), "Path to the configuration file")
+	configFilePath := flag.String("c", defaultConfigFile, "Path to the configuration file")
 	helpFlag := flag.Bool("h", false, "Show help")
 
 	/* ---------- Deal with Flags ---------- */
@@ -34,8 +65,7 @@ func main() {
 	haveCache := false
 
 	if *helpFlag {
-		fmt.Println("Usage:")
-		flag.PrintDefaults()
+		help()
 		os.Exit(0)
 	}
 	if *showVersionFlag {
@@ -47,9 +77,8 @@ func main() {
 	}
 	if *listItems {
 		fmt.Println("Available information to choose from:")
-		slices.Sort(allItems)
-		for _, item := range allItems {
-			fmt.Printf("- %s\n", item)
+		for k, _ := range itemsConfig {
+			fmt.Printf("  %s\n", k)
 		}
 		os.Exit(0)
 	}
@@ -74,7 +103,7 @@ func main() {
 		} else {
 			// Check if all requested items are valid
 			for _, item := range config.Items {
-				if !slices.Contains(allItems, item) {
+				if _, exists := itemsConfig[item]; !exists {
 					log.Fatalf("Invalid item: %s", item)
 				}
 			}
@@ -111,50 +140,48 @@ func main() {
 	/* ---------- Prepare tasks ---------- */
 	// Prepare the tasks to execute
 	var spErr error
+
+	// the functions to execute to fetch the requested information
 	tasks := []func(){}
+	// Just a map to easily track which functions we need to run
+	toRunFunc := map[string]NamedFunc{}
 
-	reqItems := make(map[string]bool, len(config.Items))
-	for _, item := range allItems {
-		if slices.Contains(config.Items, item) {
-			reqItems[item] = true
-		} else {
-			reqItems[item] = false
-		}
-	}
+	// Track which spDataType we will need to fetch from system_profiler
+	spDataTypes := map[string]bool{}
 
-	// system_profiler items:
-	// - if !haveCache, then, fetch all SP items that are requested.
-	// - if haveCache, then, fetch only the SP items that are not cached.
-	alreadyDoneSP := false
-	for _, spItem := range spItemsNotCached {
-		if reqItems[spItem] {
-			tasks = append(tasks, func() { spErr = fetchSystemProfiler(&hostInfo, haveCache) })
-			alreadyDoneSP = true
-			break
+	for _, requestedItem := range config.Items {
+		item := itemsConfig[requestedItem]
+
+		// do we need to call a function (appart from system_profiler)
+		// to retrieve the information?
+		if item.retrieveCmd.Id != "" {
+			if _, exists := toRunFunc[item.retrieveCmd.Id]; !exists {
+				toRunFunc[item.retrieveCmd.Id] = item.retrieveCmd
+			}
 		}
-	}
-	if !haveCache && !alreadyDoneSP {
-		for _, spItem := range spItemsCached {
-			if reqItems[spItem] {
-				tasks = append(tasks, func() { spErr = fetchSystemProfiler(&hostInfo, haveCache) })
-				break
+
+		if item.SystemProfiler.DataType != "" {
+			if item.SystemProfiler.IsCached && haveCache {
+				if !spDataTypes[item.SystemProfiler.DataType] {
+					spDataTypes[item.SystemProfiler.DataType] = false
+				}
+			} else {
+				if !spDataTypes[item.SystemProfiler.DataType] {
+					spDataTypes[item.SystemProfiler.DataType] = true
+				}
 			}
 		}
 	}
-	// "model" needs both data from system_profiler and from ioreg
-	if reqItems["model"] && !haveCache {
-		tasks = append(tasks, func() { hostInfo.Model.Name, hostInfo.Model.SubName, hostInfo.Model.Date = fetchModelYear() })
-	}
 
-	if reqItems["terminal"] {
-		tasks = append(tasks, func() { hostInfo.Terminal = fetchTermProgram() })
+	// Do we need to run system_profiler ?
+	if len(spDataTypes) > 0 {
+		tasks = append(tasks, func() { spErr = fetchSystemProfiler(&hostInfo, spDataTypes, haveCache) })
 	}
-	if reqItems["software"] {
-		tasks = append(tasks, func() { hostInfo.Software.NumApps = fetchNumApps() })
-		tasks = append(tasks, func() { hostInfo.Software.NumBrewFormulae, hostInfo.Software.NumBrewCasks = fetchNumHomebrew() })
-	}
-	if reqItems["public_ip"] {
-		tasks = append(tasks, func() { hostInfo.PublicIP = fetchPublicIp() })
+	// Any other functions to run ?
+	if len(toRunFunc) > 0 {
+		for _, nameFunc := range toRunFunc {
+			tasks = append(tasks, func() { nameFunc.Func(&hostInfo) })
+		}
 	}
 
 	/* ---------- Execute tasks ---------- */

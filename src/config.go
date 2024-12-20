@@ -7,49 +7,17 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Config structure to represent the configuration file
+// This struct represents the configuration file
 type Config struct {
 	CacheFilePath string   `yaml:"cache_file"`
 	Items         []string `yaml:"items"`
-	//NoLogo        bool     `yaml:"no_logo"`
-	//NoCache       bool     `yaml:"no_cache"` // don't use cache file
 }
 
 var config *Config
+
+/* ---------- Default Configuration ---------- */
 var defaultCacheFilePath = fmt.Sprintf("%s/.minfo-cache.json", os.Getenv("HOME"))
-
-// ---------- All the possible items to fetch from system_profiler ---------- //
-
-// First, system_profiler items that can be cached
-var spItemsCached = []string{
-	"model",
-	"cpu",
-	"gpu",
-	"memory",
-}
-
-// Then, system_profiler items that cannot be cached
-var spItemsNotCached = []string{
-	"user",
-	"hostname",
-	"os",
-	"disk",
-	"battery",
-	"display",
-}
-var spItems = append(spItemsCached, spItemsNotCached...)
-
-// All possible items to fetch (including from system_profiler)
-var allItems = append(spItems, []string{
-	"terminal",
-	"software",
-	"public_ip",
-	"uptime",
-	"datetime",
-}...)
-
-// By default, the information we fetch from system_profiler
-var defaultSpItems = []string{
+var defaultItems = []string{
 	"user",
 	"hostname",
 	"os",
@@ -60,16 +28,137 @@ var defaultSpItems = []string{
 	"disk",
 	"battery",
 	"display",
-}
-
-// By default, the information we fetch (including from system_profiler)
-var defaultItems = append(defaultSpItems, []string{
 	"terminal",
 	"software",
 	"public_ip",
 	"uptime",
 	"datetime",
-}...)
+}
+
+var defaultConfig = Config{
+	CacheFilePath: defaultCacheFilePath,
+	Items:         defaultItems,
+}
+
+// We use this to easily reference functions in map,
+// as func() type cannot be used as a map key, we use
+// a string instead.
+type NamedFunc struct {
+	Id   string
+	Func func(*info)
+}
+type SystemProfilerItem struct {
+	IsCached bool   // whether the item can be cached
+	DataType string // ex. "SPHardwareDataType"
+}
+
+// This struct contains information about how to fetch
+// information for a given item
+// - SystemProfiler: information to fetch from system_profiler (SPDataType)
+// - retrieveCmd: a function to retrieve the information
+type Item struct {
+	SystemProfiler SystemProfilerItem
+	retrieveCmd    NamedFunc
+}
+
+// itemsConfig is a map of all the items we can fetch,
+// with how to fetch them.
+var itemsConfig = map[string]Item{
+	"user": {
+		SystemProfiler: SystemProfilerItem{
+			IsCached: false,
+			DataType: "SPSoftwareDataType",
+		},
+	},
+	"hostname": {
+		SystemProfiler: SystemProfilerItem{
+			IsCached: false,
+			DataType: "SPSoftwareDataType",
+		},
+	},
+	"os": {
+		SystemProfiler: SystemProfilerItem{
+			IsCached: false,
+			DataType: "SPSoftwareDataType",
+		},
+	},
+	"uptime": {
+		SystemProfiler: SystemProfilerItem{
+			IsCached: false,
+			DataType: "SPSoftwareDataType",
+		},
+	},
+	"model": {
+		SystemProfiler: SystemProfilerItem{
+			IsCached: true,
+			DataType: "SPHardwareDataType",
+		},
+		retrieveCmd: NamedFunc{
+			Id:   "fetchModelYear",
+			Func: fetchModelYear,
+		},
+	},
+	"cpu": {
+		SystemProfiler: SystemProfilerItem{
+			IsCached: true,
+			DataType: "SPHardwareDataType",
+		},
+	},
+	"memory": {
+		SystemProfiler: SystemProfilerItem{
+			IsCached: true,
+			DataType: "SPMemoryDataType",
+		},
+	},
+	"display": {
+		SystemProfiler: SystemProfilerItem{
+			IsCached: false,
+			DataType: "SPDisplaysDataType",
+		},
+	},
+	"gpu": {
+		SystemProfiler: SystemProfilerItem{
+			IsCached: false,
+			DataType: "SPDisplaysDataType",
+		},
+	},
+	"battery": {
+		SystemProfiler: SystemProfilerItem{
+			IsCached: false,
+			DataType: "SPPowerDataType",
+		},
+	},
+	"disk": {
+		SystemProfiler: SystemProfilerItem{
+			IsCached: false,
+			DataType: "SPStorageDataType",
+		},
+	},
+	"terminal": {
+		retrieveCmd: NamedFunc{
+			Id:   "fetchTermProgram",
+			Func: fetchTermProgram,
+		},
+	},
+	"software": {
+		retrieveCmd: NamedFunc{
+			Id:   "fetchSoftware",
+			Func: fetchSoftware,
+		},
+	},
+	"public_ip": {
+		retrieveCmd: NamedFunc{
+			Id:   "fetchPublicIp",
+			Func: fetchPublicIp,
+		},
+	},
+	"datetime": {
+		retrieveCmd: NamedFunc{
+			Id:   "fetchDateTime",
+			Func: fetchDateTime,
+		},
+	},
+}
 
 // loadConfig loads and parses the YAML configuration file
 func loadConfig(path string) (*Config, error) {

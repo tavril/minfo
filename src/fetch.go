@@ -19,22 +19,18 @@ import (
 )
 
 // Fetch information from "system_profiler"
-func fetchSystemProfiler(hostInfo *info, haveCache bool) (err error) {
+// The "haveCache" parameter is used to know if we need to
+// parse the output of "system_profiler" for cached items or not.
+func fetchSystemProfiler(hostInfo *info, spDataTypes map[string]bool, haveCache bool) (err error) {
 	var spInfo systemProfilerInfo
 
+	/* ---------- Call system_profiler with needed SPDataType(s) ---------- */
 	args := []string{"-json", "-detailLevel", "basic"}
-	// Let's only call system_profiler for the information we need
-	for _, requestItem := range config.Items {
-		for dataType, items := range spInfoMapping {
-			if slices.Contains(items, requestItem) {
-				if (dataType == "SPHardwareDataType" && !haveCache) || dataType != "SPHardwareDataType" {
-					args = append(args, dataType)
-				}
-				break
-			}
+	for k, v := range spDataTypes {
+		if v {
+			args = append(args, k)
 		}
 	}
-
 	cmd := exec.Command("/usr/sbin/system_profiler", args...)
 	output, err := runCommand(cmd)
 	if err != nil {
@@ -44,7 +40,35 @@ func fetchSystemProfiler(hostInfo *info, haveCache bool) (err error) {
 	if err = json.Unmarshal([]byte(output), &spInfo); err != nil {
 		return
 	}
-	// User
+
+	/* ---------- Parse the output of system_profiler ---------- */
+
+	// If we don't use cache, we need to parse the system_profiler for cached information
+	if !haveCache {
+		if slices.Contains(config.Items, "model") {
+			hostInfo.Model.Number = spInfo.Hardware[0].ModelNumber
+		}
+
+		if slices.Contains(config.Items, "cpu") {
+			cpuCoreInfoArr := strings.Split(strings.Split(spInfo.Hardware[0].NumProc, " ")[1], ":")
+			hostInfo.Cpu.Model = spInfo.Displays[0].Name
+			hostInfo.Cpu.Cores, _ = strconv.Atoi(cpuCoreInfoArr[0])
+			hostInfo.Cpu.PerformanceCores, _ = strconv.Atoi(cpuCoreInfoArr[1])
+			hostInfo.Cpu.EfficiencyCores, _ = strconv.Atoi(cpuCoreInfoArr[2])
+		}
+
+		if slices.Contains(config.Items, "gpu") {
+			hostInfo.GpuCores, _ = strconv.Atoi(spInfo.Displays[0].NumCores)
+		}
+
+		if slices.Contains(config.Items, "memory") {
+			memUnit := strings.Split(spInfo.Memory[0].Amount, " ")
+			hostInfo.Memory.Amount, _ = strconv.Atoi(memUnit[0])
+			hostInfo.Memory.Unit = memUnit[1]
+			hostInfo.Memory.MemType = spInfo.Memory[0].Type
+		}
+	}
+
 	if slices.Contains(config.Items, "user") {
 		re := regexp.MustCompile(`^([\w\s]+)\s\((\w+)\)$`)
 		matches := re.FindStringSubmatch(spInfo.Software[0].UserName)
@@ -55,12 +79,10 @@ func fetchSystemProfiler(hostInfo *info, haveCache bool) (err error) {
 		}
 	}
 
-	// Hostname
 	if slices.Contains(config.Items, "hostname") {
 		hostInfo.Hostname = spInfo.Software[0].HostName
 	}
 
-	// OS
 	if slices.Contains(config.Items, "os") {
 		re := regexp.MustCompile(`^(\w+)\s([\d.]+)\s\(([^)]+)\)$`)
 		matches := re.FindStringSubmatch(spInfo.Software[0].OsVersion)
@@ -85,37 +107,6 @@ func fetchSystemProfiler(hostInfo *info, haveCache bool) (err error) {
 		}
 	}
 
-	// If we don't use cache, we need to parse the system_profiler output
-	if !haveCache {
-		// Model
-		if slices.Contains(config.Items, "model") {
-			hostInfo.Model.Number = spInfo.Hardware[0].ModelNumber
-		}
-
-		// CPU
-		if slices.Contains(config.Items, "cpu") {
-			cpuCoreInfoArr := strings.Split(strings.Split(spInfo.Hardware[0].NumProc, " ")[1], ":")
-			hostInfo.Cpu.Model = spInfo.Displays[0].Name
-			hostInfo.Cpu.Cores, _ = strconv.Atoi(cpuCoreInfoArr[0])
-			hostInfo.Cpu.PerformanceCores, _ = strconv.Atoi(cpuCoreInfoArr[1])
-			hostInfo.Cpu.EfficiencyCores, _ = strconv.Atoi(cpuCoreInfoArr[2])
-		}
-
-		// GPU
-		if slices.Contains(config.Items, "gpu") {
-			hostInfo.GpuCores, _ = strconv.Atoi(spInfo.Displays[0].NumCores)
-		}
-
-		// Memory
-		if slices.Contains(config.Items, "memory") {
-			memUnit := strings.Split(spInfo.Memory[0].Amount, " ")
-			hostInfo.Memory.Amount, _ = strconv.Atoi(memUnit[0])
-			hostInfo.Memory.Unit = memUnit[1]
-			hostInfo.Memory.MemType = spInfo.Memory[0].Type
-		}
-	}
-
-	// Disk
 	if slices.Contains(config.Items, "disk") {
 		for _, hd := range spInfo.Storage {
 			if hd.MountPoint == "/" {
@@ -127,7 +118,6 @@ func fetchSystemProfiler(hostInfo *info, haveCache bool) (err error) {
 		}
 	}
 
-	// Battery
 	if slices.Contains(config.Items, "battery") {
 		hostInfo.Battery.StatusPercent = spInfo.Power[0].BatteryChargeInfo.StateOfCharge
 		hostInfo.Battery.CapacityPercent, _ = strconv.Atoi(strings.TrimSuffix(spInfo.Power[0].BatteryHealthInfo.MaxCapacity, "%"))
@@ -140,7 +130,6 @@ func fetchSystemProfiler(hostInfo *info, haveCache bool) (err error) {
 		hostInfo.Battery.Health = spInfo.Power[0].BatteryHealthInfo.Health
 	}
 
-	// Displays
 	if slices.Contains(config.Items, "display") {
 		re := regexp.MustCompile(`^(\d+)\s*x\s*(\d+)\s*@\s*([\d.]+)Hz$`)
 		//For some unknown reason, sometime the Display information is empty !
@@ -161,11 +150,11 @@ func fetchSystemProfiler(hostInfo *info, haveCache bool) (err error) {
 		}
 	}
 
-	// Uptime and Date
 	if slices.Contains(config.Items, "uptime") {
 		uptimeInfoArr := strings.Split(strings.Split(spInfo.Software[0].Uptime, " ")[1], ":")
 		hostInfo.Uptime = fmt.Sprintf("%s days, %s hours", uptimeInfoArr[0], uptimeInfoArr[1])
 	}
+
 	if slices.Contains(config.Items, "datetime") {
 		hostInfo.Datetime = time.Now().Format(time.RFC1123)
 	}
@@ -173,50 +162,71 @@ func fetchSystemProfiler(hostInfo *info, haveCache bool) (err error) {
 	return
 }
 
-// Fetch the number of Homebrew packages installed
-func fetchNumHomebrew() (formulaeCount, casksCount int) {
-	var filePath string
-	var output string
-	var err error
-	if filePath, err = which("brew"); err != nil {
+func fetchDateTime(hostInfo *info) {
+	hostInfo.Datetime = time.Now().Format(time.RFC1123)
+}
+
+// This functions fetches the number of installed applications:
+// - number of directories in /Applications.
+// - number of HomeBrew formulae.
+// - number of HomeBrew casks.
+func fetchSoftware(hostInfo *info) {
+	/* ---------- Number of directories in /Applications ---------- */
+	entries, err := os.ReadDir("/Applications")
+	if err != nil {
+		hostInfo.Software.NumApps = -1
+	} else {
+		for _, entry := range entries {
+			if entry.IsDir() {
+				hostInfo.Software.NumApps++
+			}
+		}
+	}
+
+	/* ---------- Numner of HomeBrew Formulae/Casks ---------- */
+	hostInfo.Software.NumBrewFormulae = -1
+	hostInfo.Software.NumBrewCasks = -1
+	filePath, err := which("brew")
+	if err != nil {
 		return
 	}
 
 	cmd := exec.Command(filePath, "list", "-1", "--formulae")
-	output, err = runCommand(cmd)
+	output, err := runCommand(cmd)
 	if err != nil {
-		return -1, -1 // "-1" makes it obvious to know there was an error
+		return
 	}
-	formulaeCount = len(strings.Split(output, "\n"))
+	hostInfo.Software.NumBrewFormulae = len(strings.Split(output, "\n"))
+
 	cmd = exec.Command(filePath, "list", "-1", "--casks")
 	output, err = runCommand(cmd)
 	if err != nil {
-		return formulaeCount, -1
+		return
 	}
-	casksCount = len(strings.Split(output, "\n"))
+	hostInfo.Software.NumBrewCasks = len(strings.Split(output, "\n"))
 
 	return
 }
 
 // Fetch the terminal program using TERM_PROGRAM env. variable
-func fetchTermProgram() (termProgram string) {
-	termProgram = os.Getenv("TERM_PROGRAM")
+func fetchTermProgram(hostInfo *info) {
+	termProgram := os.Getenv("TERM_PROGRAM")
 	if termProgram == "" {
-		termProgram = "Unknown"
+		hostInfo.Terminal = "Unknown"
 	}
-
+	hostInfo.Terminal = termProgram
 	return
 }
 
 // Fetch the model of the Mac.
 // It comes in the form "MacBook Pro (16-inch, Nov 2024)".
-func fetchModelYear() (name, subname, date string) {
+func fetchModelYear(hostInfo *info) {
 	var out bytes.Buffer
+	hostInfo.Model.Name = "Unknown"
 	cmd := exec.Command("/usr/sbin/ioreg", "-arc", "IOPlatformDevice", "-k", "product-name")
 	cmd.Stdout = &out
 	err := cmd.Run()
 	if err != nil {
-		name = "Unknown"
 		return
 	}
 	var r io.Reader = strings.NewReader(out.String())
@@ -224,7 +234,6 @@ func fetchModelYear() (name, subname, date string) {
 	var mapXml []map[string]interface{}
 	var input string
 	if err := plist.NewXMLDecoder(r).Decode(&mapXml); err != nil {
-		name = "Unknown"
 		return
 	}
 	input = string(mapXml[0]["product-name"].([]byte))
@@ -236,44 +245,28 @@ func fetchModelYear() (name, subname, date string) {
 	matches := re.FindStringSubmatch(input)
 
 	if len(matches) == 4 {
-		name = matches[1]    // "MacBook Pro"
-		subname = matches[2] // "16-inch"
-		date = matches[3]    // "Nov 2024"
-
-	} else {
-		name = "Unknown"
+		// "MacBook Pro" "16-inch" "Nov 2024"
+		hostInfo.Model.Name = matches[1]
+		hostInfo.Model.SubName = matches[2]
+		hostInfo.Model.Date = matches[3]
 	}
 	return
 }
 
-// Fetch the number of applications,
-// i.e. the number of directories in /Applications
-func fetchNumApps() (numApps int) {
-	entries, err := os.ReadDir("/Applications")
-	if err != nil {
-		return 0
-	}
-
-	dirCount := 0
-	for _, entry := range entries {
-		if entry.IsDir() {
-			dirCount++
-		}
-	}
-	return dirCount
-}
-
-func fetchPublicIp() (ip string) {
+// Fetch the public IP address using http://ident.me
+func fetchPublicIp(hostInfo *info) {
+	hostInfo.PublicIP = "Unknown"
 	client := &http.Client{
 		Timeout: 500 * time.Millisecond,
 	}
 	resp, err := client.Get("http://ident.me")
 	if err != nil {
-		return "Unknown"
+		return
 	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "Unknown"
+		return
 	}
-	return string(body)
+	hostInfo.PublicIP = string(body)
+	return
 }

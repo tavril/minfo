@@ -1,10 +1,14 @@
 package main
 
-// This struct corresponds to the information
-// corresponding to a display (screen).
+/*
+This file contains the structs used in the application.
+Here are the two main structs
+- info: contains all the information that the tool can retrieve.
+- systemProfilerInfo: contains all the information retrieved from system_profiler
+*/
+
+// Information about a display (screen)
 // It is a subset of the info struct.
-// It is defined it because we need to call make([]display, X)
-// in the code.
 type display struct {
 	PixelsWidth      int     `json:"pixels_width"`
 	PixelsHeight     int     `json:"pixels_height"`
@@ -13,8 +17,7 @@ type display struct {
 	RefreshRateHz    float64 `json:"refresh_rate_hz"`
 }
 
-// This struct corresponds to the information
-// that will be cached in the cache file.
+// Information that can be cached in file.
 // It is a subset of the info struct.
 type cachedInfo struct {
 	Model struct {
@@ -36,7 +39,10 @@ type cachedInfo struct {
 		MemType string `json:"type"`
 	} `json:"memory"`
 }
+
+// info contains all the information that the tool can retrieve.
 type info struct {
+	cachedInfo
 	User struct {
 		RealName string `json:"real_name"`
 		Login    string `json:"login"`
@@ -50,7 +56,6 @@ type info struct {
 		KernelType             string `json:"kernel_type"`
 		KernelVersion          string `json:"kernel_version"`
 	} `json:"os"`
-	cachedInfo
 	Disk struct {
 		TotalTB     float32 `json:"total_tb"`
 		FreeTB      float32 `json:"free_tb"`

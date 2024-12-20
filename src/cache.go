@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 )
 
@@ -12,7 +11,6 @@ var errEmptyCache = errors.New("cache file is empty")
 func readCacheFile(cacheFilePath string) (err error) {
 	var fileInfo os.FileInfo
 	if fileInfo, err = os.Stat(cacheFilePath); err != nil {
-		fmt.Printf("Error reading cache file: %v\n", err)
 		return
 	}
 	if fileInfo.Size() == 0 {
