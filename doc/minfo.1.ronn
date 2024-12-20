@@ -33,7 +33,7 @@ The ASCII art logo support both 16 and 256 colors terminal.
   * `-c _config-file_`:
     Path to the configuration file to use.
     Optional. If there is no configuration file, default choices will be made.
-    Default: `~/.minfo.yaml`.
+    Default: `~/.config/minfo.yaml`.
 
   * `-j`:
     Displays the information as JSON instead plain text.
