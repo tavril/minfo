@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -82,8 +83,14 @@ func main() {
 	}
 	if *listItems {
 		fmt.Println("Available information to choose from:")
+		var iArr []string
+
 		for k, _ := range itemsConfig {
-			fmt.Printf("  %s\n", k)
+			iArr = append(iArr, k)
+		}
+		sort.Strings(iArr)
+		for _, i := range iArr {
+			fmt.Printf("  %s\n", i)
 		}
 		os.Exit(0)
 	}
