@@ -132,9 +132,12 @@ func (cmdLine *cmdLineParams) controlCmdLineParams() {
 		}
 	} else {
 		// Check default configuration file, that might exit (not mandatory)
-		_, err := os.Stat(defaultConfigFile)
-		if err != nil && !errors.Is(err, os.ErrNotExist) {
-			log.Fatalf("error while getting config file stat: %v", err)
+		if _, err := os.Stat(defaultConfigFile); err != nil {
+			if !errors.Is(err, os.ErrNotExist) {
+				log.Fatalf("error while getting default config file stat: %v", err)
+			}
+		} else {
+			cmdLine.ConfigFilePath = defaultConfigFile
 		}
 	}
 }
