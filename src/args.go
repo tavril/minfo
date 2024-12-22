@@ -9,59 +9,111 @@ import (
 	"sort"
 )
 
+func usage() {
+	fmt.Printf(`
+Description:
+    %s is a tool to display information about the host system.
+    It only works on MacOs.
+
+Usage:
+    %s [--config <path>] [-j|--json] [-i|--items] [-v|--version]
+    %s [-r|--refresh[=false]] [-c|--cache[=false]] [-l|--logo[=false]]
+
+Options:
+    --config <path>          Path to the configuration file (default: %s).
+    -l, --logo[=false]       Display the ASCII art logo (default: true).
+    -j, --json[=false]       Display information in JSON instead of plain text (default: false).
+    -c, --cache[=false]      Use cache file (default: true).
+    -r, --refresh[=false]    Refresh the cache file (default: false).
+    -i, --items              Display all available information to display and exit.
+    -v, --version            Show version and exit.
+    -h, --help               Show this help message and exit.
+
+Having a configuration file is optional. If you don't provide the --config parameter,
+minfo will look for a configuration file at the default path.
+If the configuration file does not exist, minfo will use the default values.
+
+--refresh=true and --cache=false are mutually exclusive.
+
+`, appName, appName, appName, defaultConfigFile)
+}
+
 type cmdLineParams struct {
 	Json           bool
 	RefreshCache   bool
 	Cache          bool
-	WithLogo       bool
-	ListItems      bool
-	ShowVersion    bool
+	Logo           bool
+	Items          bool
+	Version        bool
 	ConfigFilePath string
 }
 
 func parseCmdLineArgs(args []string) (*cmdLineParams, error) {
 	fs := flag.NewFlagSet("minfo", flag.ContinueOnError)
-	/* ---------- Flags ---------- */
-	jsonFlag := fs.Bool("j", false, "Output in JSON format instead of displaying logo")
-	refreshCacheFlag := fs.Bool("r", false, "Refresh cache (or create it if it doesn't exist)")
-	cacheFlag := fs.Bool("n", true, "Don't use/update cache")
-	withLogoFlag := fs.Bool("l", true, "Display the ASCII art logo")
-	listItems := fs.Bool("i", false, "Display all available information to display")
-	showVersionFlag := fs.Bool("v", false, "Show version")
-	configFilePath := fs.String("c", "", "Path to the configuration file")
-	helpFlag := fs.Bool("h", false, "Show help")
+	fs.Usage = usage
 
-	/* ---------- Deal with Flags ---------- */
+	var (
+		jsonFlag           bool
+		cacheFlag          bool
+		refreshCacheFlag   bool
+		logoFlag           bool
+		itemsFlag          bool
+		versionFlag        bool
+		configFilePathFlag string
+		helpFlag           bool
+	)
+
+	fs.BoolVar(&helpFlag, "help", false, "print this help message and exit.")
+	fs.BoolVar(&helpFlag, "h", false, "print this help message and exit.")
+
+	fs.BoolVar(&versionFlag, "version", false, "print the version and exit.")
+	fs.BoolVar(&versionFlag, "v", false, "print the version and exit.")
+
+	fs.BoolVar(&itemsFlag, "items", false, "display all available items to display and exit.")
+	fs.BoolVar(&itemsFlag, "i", false, "display all available items to display and exit.")
+
+	fs.StringVar(&configFilePathFlag, "config", "", "path to the configuration file.")
+
+	fs.BoolVar(&jsonFlag, "json", false, "display information in JSON instead of plain text (default: false).")
+	fs.BoolVar(&jsonFlag, "j", false, "display information in JSON instead of plain text (default: false).")
+
+	fs.BoolVar(&cacheFlag, "cache", true, "use cache file (default: true).")
+	fs.BoolVar(&cacheFlag, "c", true, "use cache file (default: true).")
+
+	fs.BoolVar(&refreshCacheFlag, "refresh", false, "refresh the cache file (default: false).")
+	fs.BoolVar(&refreshCacheFlag, "r", false, "refresh the cache file (default: false).")
+
+	fs.BoolVar(&logoFlag, "logo", true, "display the ASCII art logo (default: true).")
+	fs.BoolVar(&logoFlag, "l", true, "display the ASCII art logo (default: true).")
+
 	err := fs.Parse(args)
 	if err != nil {
 		return nil, err
 	}
-	if *helpFlag {
-		help()
-		fmt.Println("Usage:")
-		fs.PrintDefaults()
+	if helpFlag {
+		fs.Usage()
 		os.Exit(0)
 	}
 	return &cmdLineParams{
-		Json:           *jsonFlag,
-		RefreshCache:   *refreshCacheFlag,
-		Cache:          *cacheFlag,
-		WithLogo:       *withLogoFlag,
-		ListItems:      *listItems,
-		ShowVersion:    *showVersionFlag,
-		ConfigFilePath: *configFilePath,
+		Json:           jsonFlag,
+		RefreshCache:   refreshCacheFlag,
+		Cache:          cacheFlag,
+		Logo:           logoFlag,
+		Items:          itemsFlag,
+		Version:        versionFlag,
+		ConfigFilePath: configFilePathFlag,
 	}, nil
 }
 
 func (cmdLine *cmdLineParams) controlCmdLineParams() {
-	if cmdLine.ShowVersion {
+	if cmdLine.Version {
 		fmt.Printf("minfo %s (commit %s)\n", GitVersion, GitCommit)
 		os.Exit(0)
 	}
 	if !cmdLine.Cache && cmdLine.RefreshCache {
-		log.Fatalf("Cannot use -n=false and -r at the same time")
+		log.Fatalf("--cache=false and --refresh=true are mutually exclusive")
 	}
-	if cmdLine.ListItems {
+	if cmdLine.Items {
 		fmt.Println("Available information to choose from:")
 		var iArr []string
 
@@ -85,39 +137,4 @@ func (cmdLine *cmdLineParams) controlCmdLineParams() {
 			log.Fatalf("error while getting config file stat: %v", err)
 		}
 	}
-}
-
-func help() {
-	fmt.Printf(`
-%s is a tool to display information about the host system.
-It only works on MacOs.
-
-By default, it display an ASCII art logo alonside the information.
-You can choose to only display the information (-l=false), or
-you can choose to display the information in JSON format (-j).
-
-There is a default set of information to display, but you can
-customize this list in a configuration file. To list all available
-information to display, use the -i flag.
-By default, the configuration file is located at %s.
-Example:
-
----
-items:
-  - os
-  - model
-
-A cache file is used to store the information that is unlikely to change:
-computer model, CPU and GPU, and memory. You can change the location of
-this file in the configuration file by addind a "cache_file" key.
-Example
-
----
-cache_file: ~/minfo-cache.json
-
-The default location of the cache file is %s.
-You can also decide to not use the cache with the -n flag, or to force refresh
-the cache with the -r flag.
-
-`, appName, defaultConfigFile, defaultCacheFilePath)
 }

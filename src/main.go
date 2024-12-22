@@ -20,12 +20,12 @@ func main() {
 		fmt.Printf("Error parsing arguments: %v\n", err)
 		os.Exit(1)
 	}
-	cmdLine.controlCmdLineParams()
 
 	/* ---------- Load and check configuration ---------- */
 	if err := loadAndCheckConfig(cmdLine.ConfigFilePath); err != nil {
 		log.Fatalf("Error loading config: %v", err)
 	}
+	cmdLine.controlCmdLineParams()
 
 	/* ---------- Deal with cache ---------- */
 	// We cache some data which are not going to change:
@@ -139,6 +139,6 @@ func main() {
 		}
 		fmt.Println(string(jsonData))
 	} else {
-		printInfo(&hostInfo, cmdLine.WithLogo)
+		printInfo(&hostInfo, cmdLine.Logo)
 	}
 }

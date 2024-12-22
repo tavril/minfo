@@ -12,6 +12,9 @@ import (
 // This struct represents the configuration file
 type Config struct {
 	CacheFilePath *string  `yaml:"cache_file,omitempty"`
+	NoLogo        *bool    `yaml:"no_logo,omitempty"`
+	Json          *bool    `yaml:"json,omitempty"`
+	NoCache       *bool    `yaml:"no_cache,omitempty"`
 	Items         []string `yaml:"items,omitempty"`
 }
 
@@ -183,49 +186,52 @@ var availableItems = map[string]item{
 // Load the configuration file and check if the requested items are valid
 // If no configuration file is provided, use the default values defined above.
 func loadAndCheckConfig(configFilePath string) (err error) {
-	if configFilePath != "" {
-		file, err := os.Open(configFilePath)
-		if err != nil {
-			return fmt.Errorf("failed to open config file: %w", err)
-		}
-		defer file.Close()
-
-		// Parse the YAML file into the Config structure
-		decoder := yaml.NewDecoder(file)
-		if err := decoder.Decode(config); err != nil {
-			return err
-		}
-
-		if config.Items != nil {
-			// Check if all requested items are valid
-			for _, item := range config.Items {
-				if _, exists := availableItems[item]; !exists {
-					return fmt.Errorf("invalid item: %s", item)
-				}
-			}
-			// Make sure there is no duplicate
-			config.Items = uniqueStrings(config.Items)
-		} else {
-			config.Items = defaultItems
-		}
-
-		if config.CacheFilePath != nil {
-			// Replace '~' with the home directory
-			if strings.HasPrefix(*config.CacheFilePath, "~") {
-				homeDir, err := os.UserHomeDir()
-				if err != nil {
-					return fmt.Errorf("error getting home directory: %w", err)
-				}
-				*config.CacheFilePath = filepath.Join(homeDir, (*config.CacheFilePath)[1:])
-			}
-		} else {
-			config.CacheFilePath = &defaultCacheFilePath
-		}
-	} else {
+	if configFilePath == "" {
 		config = &Config{
 			CacheFilePath: &defaultCacheFilePath,
+			NoLogo:        nil,
+			Json:          nil,
+			NoCache:       nil,
 			Items:         defaultItems,
 		}
+		return nil
+	}
+	file, err := os.Open(configFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to open config file: %w", err)
+	}
+	defer file.Close()
+
+	// Parse the YAML file into the Config structure
+	decoder := yaml.NewDecoder(file)
+	if err := decoder.Decode(config); err != nil {
+		return err
+	}
+
+	if config.Items != nil {
+		// Check if all requested items are valid
+		for _, item := range config.Items {
+			if _, exists := availableItems[item]; !exists {
+				return fmt.Errorf("invalid item: %s", item)
+			}
+		}
+		// Make sure there is no duplicate
+		config.Items = uniqueStrings(config.Items)
+	} else {
+		config.Items = defaultItems
+	}
+
+	if config.CacheFilePath != nil {
+		// Replace '~' with the home directory
+		if strings.HasPrefix(*config.CacheFilePath, "~") {
+			homeDir, err := os.UserHomeDir()
+			if err != nil {
+				return fmt.Errorf("error getting home directory: %w", err)
+			}
+			*config.CacheFilePath = filepath.Join(homeDir, (*config.CacheFilePath)[1:])
+		}
+	} else {
+		config.CacheFilePath = &defaultCacheFilePath
 	}
 
 	return nil

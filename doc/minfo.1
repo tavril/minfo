@@ -4,11 +4,13 @@
 .SH "NAME"
 \fBminfo\fR \- display information about your Apple computer
 .SH "SYNOPSIS"
-\fBminfo\fR \fBminfo\fR \fB\-j\fR \fBminfo\fR \fB\-n\fR \fBminfo\fR \fB\-r\fR \fBminfo\fR \fB\-l=false\fR \fBminfo\fR \fB\-i\fR \fBminfo\fR \fB\-c\fR \fIconfig\-file\fR
+\fBminfo\fR \fBminfo \-j|\-\-json\fR \fBminfo \-c|\-\-cache[=false]\fR \fBminfo \-r|\-\-refresh[=false]\fR \fBminfo \-l|\-\-logo[]=false]\fR \fBminfo \-i|\-\-items\fR \fBminfo \-c|\-\-config config\-file\fR
 .SH "DESCRIPTION"
-\fBminfo\fR displays some information about the computer it runs on\. It is meant to be run on system running macOS only\.
+\fBminfo\fR is a tool which displays informatino about your computer/OS\. It only works on \fBmacOS\fR\.
 .P
-By default it will displays an Apple ASCII art logo alongside the information\.
+Information is displayed in plain text, with an ASCII art logo\. You can display the information without the logo, or just in JSON\.
+.P
+You can list all the information that \fBminfo\fR can fetch by running \fBminfo \-i\fR\.
 .P
 Unless specified otherwise, a cache file is used to cache information unlikely to change:
 .IP "\(bu" 4
@@ -26,24 +28,172 @@ Memory
 The ASCII art logo support both 16 and 256 colors terminal\.
 .SH "OPTIONS"
 .TP
-\fB\-c _config\-file_\fR
-Path to the configuration file to use\. Optional\. If there is no configuration file, default choices will be made\. Default: \fB~/\.config/minfo\.yaml\fR\.
+\fB\-c|\-\-config config\-file\fR
+Path to the configuration file to use\. If there is no configuration file, default choices will be made\. Optional (default: \fB~/\.config/minfo\.yaml\fR)\.
 .TP
-\fB\-j\fR
-Displays the information as JSON instead plain text\.
+\fB\-j|\-\-json\fR
+Displays the information as JSON instead plain text\. Optional (default: false)\.
 .TP
-\fB\-n\fR
-Do not use the cache\. Mutualy exclusive with \fB\-r\fR\. Default: false\.
+\fB\-c|\-\-cache\fR
+Use/Don't use the cache file\. Optional (default: true)\. \fB\-\-cache=false\fR is mutually exclusive with \fB\-\-refresh=true\fR\.
 .TP
-\fB\-r\fR
-Like \fB\-n\fR, but write the cache file with new fetched information\. Mutualy exclusive with \fB\-n\fR\. Default: false\.
+\fB\-r|\-\-refresh\fR
+Refresh/Don't refresh the cache file\. Optional (default: false)\. \fB\-\-refresh=true\fR is mutually exclusive with \fB\-\-cache=false\fR\.
 .TP
-\fB\-l\fR, \fB\-l=false\fR
-Do not display the ASCII art image\. Default: false\.
+\fB\-l|\-\-logo\fR
+Display/don't display the ASCII art image\. Optional (default: true)\. Ignored if \-\-json is set\.
 .TP
-\fB\-i\fR
-Displays the list of all available items to be displayed\.
+\fB\-i|\-\-items\fR
+Displays the list of all available items and exit\.
 .TP
-\fB\-v\fR
-Displays the version of \fBminfo\fR\.
+\fB\-v|\-\-version\fR
+Displays the version of \fBminfo\fR and exit\.
+.SH "Cache file"
+There is a cache file (by default \fB~/\.minfo\-cache\.json\fR) which caches some information that are unlikely to change: computer model, serial number, CPU, GPU, memory\. Location of the cache file can be customized in the configuration file\.
+.IP "\(bu" 4
+You can ask the tool to not use the cache with command line parameter \fB\-\-cache\fR\.
+.IP "\(bu" 4
+You can ask the tool to refresh the cache with command line parameter \fB\-\-refresh\fR\.
+.IP "" 0
+.P
+\fB\-\-refresh=true\fR and \fB\-\-cache=false\fR are mutualy exclusive\.
+.SH "Logo"
+You can decide not to display the Apple logo with command line parameter \fB\-\-logo=false\fR\. Logo is displayed in color, and support 16/256colors terminals\.
+.SH "JSON output"
+You can output JSON instead of text by using command line parameter \fB\-\-json\fR\.
+.SH "Configuration file"
+Configuration file is optional\. If no configuration file exist, default choices will be made\. In the configuration file, you can define
+.IP "\(bu" 4
+Location of the cache file,
+.IP "\(bu" 4
+Items to be displayed\.
+.IP "" 0
+.P
+Choose the list of items to be displayed among the items listed when running \fBminfo \-\-items\fR\.
+.P
+By default, the tool will look for a configuration file located at \fB~/\.config/minfo\.yml\fR, but you can specify another location with command line parameter \fB\-\-config <path_to_file>\fR\.
+.SH "Examples"
+Default layout
+.IP "" 4
+.nf
+$ minfo
+                                 User           John Doe (jdoe)
+                    ##           Hostname       jdoe\-laptop
+                  ####           OS             macOS Sequoia 15\.2 (24C101) Darwin 24\.2\.0
+                #####            macOS SIP      Enabled
+               ####              Serial         XXXXXXXXXX
+      ########   ############    Model          MacBook Pro 16\-inch (Nov 2024) Z1FW0008GSM/A
+    ##########################   CPU            Apple M4 Max 16 cores (12 P and 4 E)
+  ###########################    GPU            40 cores
+  ##########################     Memory         64 GB LPDDR5
+ ##########################      Disk           2\.00 TB (1\.14 TB available)
+ ##########################      Disk SMART     Verified
+ ###########################     Battery        94% (discharging) | 100% capacity
+  ############################   Battery health Good
+  #############################  Display #1     3456 x 2234 | 1728 x 1117 @ 120 Hz
+   ############################  Terminal       iTerm\.app
+     ########################    Software       65 Apps | 227 Formulae | 37 Casks
+      ######################     Public IP      178\.195\.102\.237 (Switzerland)
+        #######    #######       Uptime         1 days, 19 hours
+                                 Date/Time      Sun, 22 Dec 2024 16:58:33 CET
+.fi
+.IP "" 0
+.P
+JSON output
+.IP "" 4
+.nf
+$ minfo \-j
+{
+  "model": {
+    "name": "MacBook Pro",
+    "sub_name": "16\-inch",
+    "date": "Nov 2024",
+    "number": "Z1FW0008GSM/A"
+  },
+  "cpu": {
+    "model": "Apple M4 Max",
+    "cores": 16,
+    "performance_cores": 12,
+    "efficiency_cores": 4
+  },
+  "gpu_cores": 40,
+  "memory": {
+    "amount": 64,
+    "unit": "GB",
+    "type": "LPDDR5"
+  },
+  "serial_number": "XXXXXXXXXX",
+  "user": {
+    "real_name": "John Doe",
+    "login": "jdoe"
+  },
+  "hostname": "jdoe\-laptop",
+  "os": {
+    "system": "macOS",
+    "system_version": "15\.2",
+    "system_build": "24C101",
+    "system_version_code_name": "Sequoia",
+    "kernel_type": "Darwin",
+    "kernel_version": "24\.2\.0"
+  },
+  "system_integrity": "integrity_enabled",
+  "disk": {
+    "total_tb": 1\.9952183,
+    "free_tb": 1\.1365209,
+    "smart_status": "Verified"
+  },
+  "battery": {
+    "status_percent": 93,
+    "capacity_percent": 100,
+    "health": "Good"
+  },
+  "displays": [
+    {
+      "pixels_width": 3456,
+      "pixels_height": 2234,
+      "resolution_width": 1728,
+      "resolution_height": 1117,
+      "refresh_rate_hz": 120
+    }
+  ],
+  "software": {
+    "num_apps": 65,
+    "num_homebrew_formulae": 227,
+    "num_homebrew_casks": 37
+  },
+  "terminal": "iTerm\.app",
+  "uptime": "1 days, 19 hours",
+  "datetime": "Sun, 22 Dec 2024 16:58:35 CET",
+  "public_ip": {
+    "query": "178\.195\.102\.237",
+    "country": "Switzerland"
+  }
+}
+.fi
+.IP "" 0
+.P
+Display available items
+.IP "" 4
+.nf
+$ minfo \-\-items
+Available information to choose from:
+  battery
+  cpu
+  datetime
+  disk
+  display
+  gpu
+  hostname
+  memory
+  model
+  os
+  public_ip
+  serial_number
+  software
+  system_integrity
+  terminal
+  uptime
+  user
+.fi
+.IP "" 0
 

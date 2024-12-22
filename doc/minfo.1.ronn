@@ -4,19 +4,22 @@ minfo(1) -- display information about your Apple computer
 ## SYNOPSIS
 
 `minfo`
-`minfo` `-j`
-`minfo` `-n`
-`minfo` `-r`
-`minfo` `-l=false`
-`minfo` `-i`
-`minfo` `-c` _config-file_
+`minfo -j|--json`
+`minfo -c|--cache[=false]`
+`minfo -r|--refresh[=false]`
+`minfo -l|--logo[]=false]`
+`minfo -i|--items`
+`minfo -c|--config config-file`
 
 ## DESCRIPTION
 
-**minfo** displays some information about the computer it runs on.
-It is meant to be run on system running macOS only.
+**minfo** is a tool which displays informatino about your computer/OS.
+It only works on **macOS**.
 
-By default it will displays an Apple ASCII art logo alongside the information.
+Information is displayed in plain text, with an ASCII art logo.
+You can display the information without the logo, or just in JSON.
+
+You can list all the information that **minfo** can fetch by running `minfo -i`.
 
 Unless specified otherwise, a cache file is used to cache information
 unlikely to change:
@@ -30,32 +33,184 @@ The ASCII art logo support both 16 and 256 colors terminal.
 
 ## OPTIONS
 
-  * `-c _config-file_`:
+  * `-c|--config config-file`:
     Path to the configuration file to use.
-    Optional. If there is no configuration file, default choices will be made.
-    Default: `~/.config/minfo.yaml`.
+    If there is no configuration file, default choices will be made.
+    Optional (default: `~/.config/minfo.yaml`).
 
-  * `-j`:
+  * `-j|--json`:
     Displays the information as JSON instead plain text.
+    Optional (default: false).
 
-  * `-n`:
-    Do not use the cache.
-    Mutualy exclusive with `-r`.
-    Default: false.
+  * `-c|--cache`:
+    Use/Don't use the cache file.
+    Optional (default: true).
+    `--cache=false` is mutually exclusive with `--refresh=true`.
 
-  * `-r`:
-    Like `-n`, but write the cache file with new fetched information.
-    Mutualy exclusive with `-n`.
-    Default: false.
+  * `-r|--refresh`:
+    Refresh/Don't refresh the cache file.
+    Optional (default: false).
+    `--refresh=true` is mutually exclusive with `--cache=false`.
 
-  * `-l`, `-l=false`:
-    Do not display the ASCII art image.
-    Default: false.
+  * `-l|--logo`:
+    Display/don't display the ASCII art image.
+    Optional (default: true).
+    Ignored if --json is set.
 
-  * `-i`:
-    Displays the list of all available items to be displayed.
+  * `-i|--items`:
+    Displays the list of all available items and exit.
 
-  * `-v`:
-    Displays the version of **minfo**.
+  * `-v|--version`:
+    Displays the version of **minfo** and exit.
 
 
+## Cache file
+
+There is a cache file (by default `~/.minfo-cache.json`) which caches some information
+that are unlikely to change: computer model, serial number, CPU, GPU, memory.
+Location of the cache file can be customized in the configuration file.
+
+- You can ask the tool to not use the cache with command line parameter `--cache`.
+- You can ask the tool to refresh the cache with command line parameter `--refresh`.
+
+`--refresh=true` and `--cache=false` are mutualy exclusive.
+
+## Logo
+
+You can decide not to display the Apple logo with command line parameter `--logo=false`.
+Logo is displayed in color, and support 16/256colors terminals.
+
+## JSON output
+
+You can output JSON instead of text by using command line parameter `--json`.
+
+## Configuration file
+
+Configuration file is optional. If no configuration file exist, default choices will be made.
+In the configuration file, you can define
+
+- Location of the cache file,
+- Items to be displayed.
+
+Choose the list of items to be displayed among the items listed when running `minfo --items`.
+
+By default, the tool will look for a configuration file located at `~/.config/minfo.yml`,
+but you can specify another location with command line parameter `--config <path_to_file>`.
+
+## Examples
+
+Default layout
+
+    $ minfo
+                                     User           John Doe (jdoe)
+                        ##           Hostname       jdoe-laptop
+                      ####           OS             macOS Sequoia 15.2 (24C101) Darwin 24.2.0
+                    #####            macOS SIP      Enabled
+                   ####              Serial         XXXXXXXXXX
+          ########   ############    Model          MacBook Pro 16-inch (Nov 2024) Z1FW0008GSM/A
+        ##########################   CPU            Apple M4 Max 16 cores (12 P and 4 E)
+      ###########################    GPU            40 cores
+      ##########################     Memory         64 GB LPDDR5
+     ##########################      Disk           2.00 TB (1.14 TB available)
+     ##########################      Disk SMART     Verified
+     ###########################     Battery        94% (discharging) | 100% capacity
+      ############################   Battery health Good
+      #############################  Display #1     3456 x 2234 | 1728 x 1117 @ 120 Hz
+       ############################  Terminal       iTerm.app
+         ########################    Software       65 Apps | 227 Formulae | 37 Casks
+          ######################     Public IP      178.195.102.237 (Switzerland)
+            #######    #######       Uptime         1 days, 19 hours
+                                     Date/Time      Sun, 22 Dec 2024 16:58:33 CET
+
+JSON output
+
+    $ minfo -j
+    {
+      "model": {
+        "name": "MacBook Pro",
+        "sub_name": "16-inch",
+        "date": "Nov 2024",
+        "number": "Z1FW0008GSM/A"
+      },
+      "cpu": {
+        "model": "Apple M4 Max",
+        "cores": 16,
+        "performance_cores": 12,
+        "efficiency_cores": 4
+      },
+      "gpu_cores": 40,
+      "memory": {
+        "amount": 64,
+        "unit": "GB",
+        "type": "LPDDR5"
+      },
+      "serial_number": "XXXXXXXXXX",
+      "user": {
+        "real_name": "John Doe",
+        "login": "jdoe"
+      },
+      "hostname": "jdoe-laptop",
+      "os": {
+        "system": "macOS",
+        "system_version": "15.2",
+        "system_build": "24C101",
+        "system_version_code_name": "Sequoia",
+        "kernel_type": "Darwin",
+        "kernel_version": "24.2.0"
+      },
+      "system_integrity": "integrity_enabled",
+      "disk": {
+        "total_tb": 1.9952183,
+        "free_tb": 1.1365209,
+        "smart_status": "Verified"
+      },
+      "battery": {
+        "status_percent": 93,
+        "capacity_percent": 100,
+        "health": "Good"
+      },
+      "displays": [
+        {
+          "pixels_width": 3456,
+          "pixels_height": 2234,
+          "resolution_width": 1728,
+          "resolution_height": 1117,
+          "refresh_rate_hz": 120
+        }
+      ],
+      "software": {
+        "num_apps": 65,
+        "num_homebrew_formulae": 227,
+        "num_homebrew_casks": 37
+      },
+      "terminal": "iTerm.app",
+      "uptime": "1 days, 19 hours",
+      "datetime": "Sun, 22 Dec 2024 16:58:35 CET",
+      "public_ip": {
+        "query": "178.195.102.237",
+        "country": "Switzerland"
+      }
+    }
+
+Display available items
+
+    $ minfo --items
+    Available information to choose from:
+      battery
+      cpu
+      datetime
+      disk
+      display
+      gpu
+      hostname
+      memory
+      model
+      os
+      public_ip
+      serial_number
+      software
+      system_integrity
+      terminal
+      uptime
+      user
+    
