@@ -47,10 +47,7 @@ func (h *HardwareInfo) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Fetch information from "system_profiler"
-// The "haveCache" parameter is used to know if we need to
-// parse the output of "system_profiler" for cached items or not.
-func fetchSystemProfiler(hostInfo *info, spDataTypes map[string]bool, haveCache bool) (err error) {
+func fetchSystemProfiler(hostInfo *info, items []string, spDataTypes map[string]bool, haveCache bool) (err error) {
 	var spInfo systemProfilerInfo
 
 	/* ---------- Call system_profiler with needed SPDataType(s) ---------- */
@@ -60,8 +57,10 @@ func fetchSystemProfiler(hostInfo *info, spDataTypes map[string]bool, haveCache 
 			args = append(args, k)
 		}
 	}
+	args = append([]string{"-json", "-detailLevel", "basic"}, args...)
 	cmd := exec.Command("/usr/sbin/system_profiler", args...)
-	output, err := runCommand(cmd)
+	var output string
+	output, err = runCommand(cmd)
 	if err != nil {
 		return
 	}
@@ -72,12 +71,7 @@ func fetchSystemProfiler(hostInfo *info, spDataTypes map[string]bool, haveCache 
 
 	/* ---------- Parse the output of system_profiler ---------- */
 
-	// If we don't use cache, we need to parse the system_profiler for cached information
-	// note: we can run into the case where the first time the program is run, the user
-	// only requested a subset of the information, so that the cache file is created
-	// with the "cachedInfo" struct that might contains non-set fields (string="", int=0, etc.)
-	// --> that why we need to check if the fields are set or not.
-	if slices.Contains(config.Items, "model") && (!haveCache || hostInfo.Model == nil) {
+	if slices.Contains(items, "model") && !haveCache {
 		// We also have to call ioreg to get all the information about the model
 
 		hostInfo.Model = &Model{}
@@ -85,13 +79,12 @@ func fetchSystemProfiler(hostInfo *info, spDataTypes map[string]bool, haveCache 
 		(*hostInfo.Model).Number = spInfo.Hardware[0].ModelNumber
 	}
 
-	if slices.Contains(config.Items, "cpu") && (!haveCache || hostInfo.Cpu == nil) {
+	if slices.Contains(items, "cpu") && !haveCache {
 		// Note: differences between Apple Silicon and Intel CPUs:
 		// - field called "chip_type" for Apple Silicon
 		// - field called "cpu_type" for Intel
 		// - field called "number_processors" is a string for Apple Silicon
 		// - field called "number_processors" is an int for Intel
-
 		hostInfo.Cpu = &Cpu{}
 		(*hostInfo.Cpu).Model = spInfo.Hardware[0].ChipType
 		switch v := spInfo.Hardware[0].NumProc.(type) {
@@ -105,12 +98,12 @@ func fetchSystemProfiler(hostInfo *info, spDataTypes map[string]bool, haveCache 
 		}
 	}
 
-	if slices.Contains(config.Items, "gpu") && (!haveCache || hostInfo.GpuCores == nil) {
+	if slices.Contains(items, "gpu") && !haveCache {
 		tmp, _ := strconv.Atoi(spInfo.Displays[0].NumCores)
 		hostInfo.GpuCores = &tmp
 	}
 
-	if slices.Contains(config.Items, "memory") && (!haveCache || hostInfo.Memory == nil) {
+	if slices.Contains(items, "memory") && !haveCache {
 		hostInfo.Memory = &Memory{}
 		for _, mem := range spInfo.Memory {
 			memMap, _ := mem.(map[string]interface{})
@@ -137,21 +130,23 @@ func fetchSystemProfiler(hostInfo *info, spDataTypes map[string]bool, haveCache 
 		}
 	}
 
-	if slices.Contains(config.Items, "user") {
+	if slices.Contains(items, "user") {
 		re := regexp.MustCompile(`^([\w\s]+)\s\((\w+)\)$`)
 		matches := re.FindStringSubmatch(spInfo.Software[0].UserName)
 
+		hostInfo.User = &userInfo{}
 		if len(matches) == 3 {
-			hostInfo.User.RealName = matches[1]
-			hostInfo.User.Login = matches[2]
+			(*hostInfo.User).RealName = matches[1]
+			(*hostInfo.User).Login = matches[2]
 		}
 	}
 
-	if slices.Contains(config.Items, "hostname") {
+	if slices.Contains(items, "hostname") {
 		hostInfo.Hostname = spInfo.Software[0].HostName
 	}
 
-	if slices.Contains(config.Items, "os") {
+	if slices.Contains(items, "os") {
+		hostInfo.Os = &osInfo{}
 		re := regexp.MustCompile(`^(\w+)\s([\d.]+)\s\(([^)]+)\)$`)
 		matches := re.FindStringSubmatch(spInfo.Software[0].OsVersion)
 		if len(matches) == 4 {
@@ -175,17 +170,16 @@ func fetchSystemProfiler(hostInfo *info, spDataTypes map[string]bool, haveCache 
 		}
 	}
 
-	if slices.Contains(config.Items, "system_integrity") {
+	if slices.Contains(items, "system_integrity") {
 		hostInfo.SystemIntegrity = spInfo.Software[0].SystemIntegrity
 	}
 
-	if slices.Contains(config.Items, "serial_number") {
-		if !haveCache || hostInfo.SerialNumber == nil {
-			hostInfo.SerialNumber = &spInfo.Hardware[0].SerialNumber
-		}
+	if slices.Contains(items, "serial_number") && !haveCache {
+		hostInfo.SerialNumber = &spInfo.Hardware[0].SerialNumber
 	}
 
-	if slices.Contains(config.Items, "disk") {
+	if slices.Contains(items, "disk") {
+		hostInfo.Disk = &diskInfo{}
 		for _, hd := range spInfo.Storage {
 			if hd.MountPoint == "/" {
 				hostInfo.Disk.TotalTB = float32(hd.SizeByte) / 1000000000000
@@ -196,7 +190,8 @@ func fetchSystemProfiler(hostInfo *info, spDataTypes map[string]bool, haveCache 
 		}
 	}
 
-	if slices.Contains(config.Items, "battery") {
+	if slices.Contains(items, "battery") {
+		hostInfo.Battery = &batteryInfo{}
 		hostInfo.Battery.StatusPercent = spInfo.Power[0].BatteryChargeInfo.StateOfCharge
 		hostInfo.Battery.CapacityPercent, _ = strconv.Atoi(strings.TrimSuffix(spInfo.Power[0].BatteryHealthInfo.MaxCapacity, "%"))
 
@@ -208,7 +203,7 @@ func fetchSystemProfiler(hostInfo *info, spDataTypes map[string]bool, haveCache 
 		hostInfo.Battery.Health = spInfo.Power[0].BatteryHealthInfo.Health
 	}
 
-	if slices.Contains(config.Items, "display") {
+	if slices.Contains(items, "display") {
 		re := regexp.MustCompile(`^(\d+)\s*x\s*(\d+)\s*@\s*([\d.]+)Hz$`)
 		//For some unknown reason, sometime the Display information is empty !
 		if len(spInfo.Displays) > 0 {
@@ -228,15 +223,50 @@ func fetchSystemProfiler(hostInfo *info, spDataTypes map[string]bool, haveCache 
 		}
 	}
 
-	if slices.Contains(config.Items, "uptime") {
+	if slices.Contains(items, "uptime") {
 		uptimeInfoArr := strings.Split(strings.Split(spInfo.Software[0].Uptime, " ")[1], ":")
 		hostInfo.Uptime = fmt.Sprintf("%s days, %s hours", uptimeInfoArr[0], uptimeInfoArr[1])
 	}
 
-	if slices.Contains(config.Items, "datetime") {
+	if slices.Contains(items, "datetime") {
 		hostInfo.Datetime = time.Now().Format(time.RFC1123)
 	}
 
+	return
+}
+
+// Fetch the model of the Mac. CALLED BY fetchSystemProfiler()
+// It comes in the form "MacBook Pro (16-inch, Nov 2024)".
+func fetchModelYear(model *Model) {
+	var out bytes.Buffer
+	model.Name = "Unknown"
+	cmd := exec.Command("/usr/sbin/ioreg", "-arc", "IOPlatformDevice", "-k", "product-name")
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		return
+	}
+	var r io.Reader = strings.NewReader(out.String())
+
+	var mapXml []map[string]interface{}
+	var input string
+	if err := plist.NewXMLDecoder(r).Decode(&mapXml); err != nil {
+		return
+	}
+	input = string(mapXml[0]["product-name"].([]byte))
+	// The last character of the "product-name" is unicode \u0000 (nul char), so let's remove it.
+	_, size := utf8.DecodeLastRuneInString(input)
+	input = input[:len(input)-size]
+
+	re := regexp.MustCompile(`^([\w\s]+)\s\(([^,]+),\s([^)]+)\)$`)
+	matches := re.FindStringSubmatch(input)
+
+	if len(matches) == 4 {
+		// "MacBook Pro" "16-inch" "Nov 2024"
+		model.Name = matches[1]
+		model.SubName = matches[2]
+		model.Date = matches[3]
+	}
 	return
 }
 
@@ -249,6 +279,7 @@ func fetchDateTime(hostInfo *info) {
 // - number of HomeBrew formulae.
 // - number of HomeBrew casks.
 func fetchSoftware(hostInfo *info) {
+	hostInfo.Software = &softwareInfo{}
 	/* ---------- Number of directories in /Applications ---------- */
 	entries, err := os.ReadDir("/Applications")
 	if err != nil {
@@ -296,44 +327,9 @@ func fetchTermProgram(hostInfo *info) {
 	return
 }
 
-// Fetch the model of the Mac.
-// It comes in the form "MacBook Pro (16-inch, Nov 2024)".
-func fetchModelYear(model *Model) {
-	var out bytes.Buffer
-	model.Name = "Unknown"
-	cmd := exec.Command("/usr/sbin/ioreg", "-arc", "IOPlatformDevice", "-k", "product-name")
-	cmd.Stdout = &out
-	err := cmd.Run()
-	if err != nil {
-		return
-	}
-	var r io.Reader = strings.NewReader(out.String())
-
-	var mapXml []map[string]interface{}
-	var input string
-	if err := plist.NewXMLDecoder(r).Decode(&mapXml); err != nil {
-		return
-	}
-	input = string(mapXml[0]["product-name"].([]byte))
-	// The last character of the "product-name" is unicode \u0000 (nul char), so let's remove it.
-	_, size := utf8.DecodeLastRuneInString(input)
-	input = input[:len(input)-size]
-
-	re := regexp.MustCompile(`^([\w\s]+)\s\(([^,]+),\s([^)]+)\)$`)
-	matches := re.FindStringSubmatch(input)
-
-	if len(matches) == 4 {
-		// "MacBook Pro" "16-inch" "Nov 2024"
-		model.Name = matches[1]
-		model.SubName = matches[2]
-		model.Date = matches[3]
-	}
-	return
-}
-
 // Fetch the public IP address (and its country name)
 func fetchPublicIp(hostInfo *info) {
-	hostInfo.PublicIp.IP = "Unknown"
+	hostInfo.PublicIp = &publicIpInfo{IP: "Unknown"}
 	client := &http.Client{
 		Timeout: 500 * time.Millisecond,
 	}

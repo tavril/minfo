@@ -24,11 +24,34 @@ func readCacheFile(cacheFilePath string) (err error) {
 	return
 }
 
-func writeCacheFile(cacheFilePath string) (err error) {
+func writeCacheFile(cacheFilePath string, hostInfo *info) (err error) {
 	var jsonData []byte
-	if jsonData, err = json.MarshalIndent(hostInfo.cachedInfo, "", "  "); err != nil {
+	if jsonData, err = json.MarshalIndent((*hostInfo).cachedInfo, "", "  "); err != nil {
 		return
 	}
 	err = os.WriteFile(cacheFilePath, jsonData, 0644)
 	return
+}
+
+func populateCache(cacheFilePath string) (err error) {
+	spDataTypes := map[string]bool{}
+	var items []string
+	for k, v := range availableItems {
+		if v.SPDataType != nil && v.IsCached {
+			if _, ok := spDataTypes[*v.SPDataType]; !ok {
+				spDataTypes[*v.SPDataType] = true
+			}
+			items = append(items, k)
+		}
+	}
+
+	spErr := fetchSystemProfiler(&hostInfo, items, spDataTypes, false)
+	if spErr != nil {
+		return spErr
+	}
+
+	if err := writeCacheFile(cacheFilePath, &hostInfo); err != nil {
+		return err
+	}
+	return nil
 }

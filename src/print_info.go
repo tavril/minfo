@@ -8,7 +8,7 @@ import (
 
 // helper to create a line of information
 func createInfoLine(requestedItem, info string) []string {
-	return []string{colorCyan, itemsConfig[requestedItem].Title, colorNormal, info}
+	return []string{colorCyan, availableItems[requestedItem].Title, colorNormal, info}
 }
 
 // each info line gets a Title and information

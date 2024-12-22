@@ -3,17 +3,19 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
 
 // This struct represents the configuration file
 type Config struct {
-	CacheFilePath string   `yaml:"cache_file"`
-	Items         []string `yaml:"items"`
+	CacheFilePath *string  `yaml:"cache_file,omitempty"`
+	Items         []string `yaml:"items,omitempty"`
 }
 
-var config *Config
+var config = &Config{}
 
 /* ---------- Default Configuration ---------- */
 var defaultCacheFilePath = fmt.Sprintf("%s/.minfo-cache.json", os.Getenv("HOME"))
@@ -37,171 +39,194 @@ var defaultItems = []string{
 	"datetime",
 }
 
-var defaultConfig = Config{
-	CacheFilePath: defaultCacheFilePath,
-	Items:         defaultItems,
-}
+/* ---------- AVAILABLE ITEMS ---------- */
+// For things to be retrieved from system_profiler,
+// We need to know the SPDataType to fetch.
+var (
+	SPSoftwareDataType = "SPSoftwareDataType"
+	SPHardwareDataType = "SPHardwareDataType"
+	SPMemoryDataType   = "SPMemoryDataType"
+	SPDisplaysDataType = "SPDisplaysDataType"
+	SPPowerDataType    = "SPPowerDataType"
+	SPStorageDataType  = "SPStorageDataType"
+)
 
-// We use this to easily reference functions in map,
-// as func() type cannot be used as a map key, we use
-// a string instead.
+// For things that are not retrieved from system_profiler,
+// we need to know which function to call to get the information.
+// We use a NamedFunc struct because we cannot have pointers
+// to functions, and the "item" struct must have pointers,
+// because its "Func" field is optional (so we need to be able
+// to set it to nil).
 type NamedFunc struct {
 	Id   string
 	Func func(*info)
 }
-type SystemProfilerItem struct {
-	IsCached bool   // whether the item can be cached
-	DataType string // ex. "SPHardwareDataType"
+
+var (
+	datetimeNamedFunc = NamedFunc{
+		Id:   "fetchDateTime",
+		Func: fetchDateTime,
+	}
+	publicIpNamedFunc = NamedFunc{
+		Id:   "fetchPublicIp",
+		Func: fetchPublicIp,
+	}
+	softwareNamedFunc = NamedFunc{
+		Id:   "fetchSoftware",
+		Func: fetchSoftware,
+	}
+	termProgramNamedFunc = NamedFunc{
+		Id:   "fetchTermProgram",
+		Func: fetchTermProgram,
+	}
+)
+
+// Defines an item that can be fetched and displayed.
+// Title: The title of the item to display. Ex. "Public IP"
+//   - Required
+//
+// SPDataType: The SPDataType to fetch from system_profiler. Ex. "SPSoftwareDataType"
+//   - Optional (i.e. default = nil)
+//
+// Func: The function to call to get the information.
+//   - Optional (i.e. default = nil)
+//
+// IsCached: Whether the information should be cached or not.
+//   - Optional (i.e. default = false)
+type item struct {
+	Title      string
+	SPDataType *string
+	Func       *NamedFunc
+	IsCached   bool
 }
 
-// This struct contains information about how to fetch
-// information for a given item
-// - SystemProfiler: information to fetch from system_profiler (SPDataType)
-// - retrieveCmd: a function to retrieve the information
-type Item struct {
-	Title          string
-	SystemProfiler SystemProfilerItem
-	retrieveCmd    NamedFunc
-}
-
-// itemsConfig is a map of all the items we can fetch,
-// with how to fetch them.
-var itemsConfig = map[string]Item{
-	"user": {
-		Title: "User",
-		SystemProfiler: SystemProfilerItem{
-			IsCached: false,
-			DataType: "SPSoftwareDataType",
-		},
-	},
-	"hostname": {
-		Title: "Hostname",
-		SystemProfiler: SystemProfilerItem{
-			IsCached: false,
-			DataType: "SPSoftwareDataType",
-		},
-	},
-	"os": {
-		Title: "OS",
-		SystemProfiler: SystemProfilerItem{
-			IsCached: false,
-			DataType: "SPSoftwareDataType",
-		},
-	},
-	"system_integrity": {
-		Title: "macOS SIP",
-		SystemProfiler: SystemProfilerItem{
-			IsCached: false,
-			DataType: "SPSoftwareDataType",
-		},
-	},
-	"serial_number": {
-		Title: "Serial",
-		SystemProfiler: SystemProfilerItem{
-			IsCached: true,
-			DataType: "SPHardwareDataType",
-		},
-	},
-	"uptime": {
-		Title: "Uptime",
-		SystemProfiler: SystemProfilerItem{
-			IsCached: false,
-			DataType: "SPSoftwareDataType",
-		},
-	},
-	"model": {
-		Title: "Model",
-		SystemProfiler: SystemProfilerItem{
-			IsCached: true,
-			DataType: "SPHardwareDataType",
-		},
-	},
+// All available items we can fetch and display.
+var availableItems = map[string]item{
+	/* ---------- System Profiler Data (cached data) ---------- */
 	"cpu": {
-		Title: "CPU",
-		SystemProfiler: SystemProfilerItem{
-			IsCached: true,
-			DataType: "SPHardwareDataType",
-		},
-	},
-	"memory": {
-		Title: "Memory",
-		SystemProfiler: SystemProfilerItem{
-			IsCached: true,
-			DataType: "SPMemoryDataType",
-		},
-	},
-	"display": {
-		Title: "Display",
-		SystemProfiler: SystemProfilerItem{
-			IsCached: false,
-			DataType: "SPDisplaysDataType",
-		},
+		Title:      "CPU",
+		SPDataType: &SPHardwareDataType,
+		IsCached:   true,
 	},
 	"gpu": {
-		Title: "GPU",
-		SystemProfiler: SystemProfilerItem{
-			IsCached: false,
-			DataType: "SPDisplaysDataType",
-		},
+		Title:      "GPU",
+		SPDataType: &SPDisplaysDataType,
+		IsCached:   true,
 	},
+	"model": {
+		Title:      "Model",
+		SPDataType: &SPHardwareDataType,
+		IsCached:   true,
+	},
+	"memory": {
+		Title:      "Memory",
+		SPDataType: &SPMemoryDataType,
+		IsCached:   true,
+	},
+	"serial_number": {
+		Title:      "Serial",
+		SPDataType: &SPHardwareDataType,
+		IsCached:   true,
+	},
+	/* ---------- System Profiler Data (non-cached data) ---------- */
 	"battery": {
-		Title: "Battery",
-		SystemProfiler: SystemProfilerItem{
-			IsCached: false,
-			DataType: "SPPowerDataType",
-		},
+		Title:      "Battery",
+		SPDataType: &SPPowerDataType,
 	},
 	"disk": {
-		Title: "Disk",
-		SystemProfiler: SystemProfilerItem{
-			IsCached: false,
-			DataType: "SPStorageDataType",
-		},
+		Title:      "Disk",
+		SPDataType: &SPStorageDataType,
 	},
-	"terminal": {
-		Title: "Terminal",
-		retrieveCmd: NamedFunc{
-			Id:   "fetchTermProgram",
-			Func: fetchTermProgram,
-		},
+	"display": {
+		Title:      "Display",
+		SPDataType: &SPDisplaysDataType,
 	},
-	"software": {
-		Title: "Software",
-		retrieveCmd: NamedFunc{
-			Id:   "fetchSoftware",
-			Func: fetchSoftware,
-		},
+	"hostname": {
+		Title:      "Hostname",
+		SPDataType: &SPSoftwareDataType,
+	},
+	"os": {
+		Title:      "OS",
+		SPDataType: &SPSoftwareDataType,
+	},
+	"system_integrity": {
+		Title:      "macOS SIP",
+		SPDataType: &SPSoftwareDataType,
+	},
+	"uptime": {
+		Title:      "Uptime",
+		SPDataType: &SPSoftwareDataType,
+	},
+	"user": {
+		Title:      "User",
+		SPDataType: &SPSoftwareDataType,
+	},
+	/* ---------- Other Data ---------- */
+	"datetime": {
+		Title: "Date/Time",
+		Func:  &datetimeNamedFunc,
 	},
 	"public_ip": {
 		Title: "Public IP",
-		retrieveCmd: NamedFunc{
-			Id:   "fetchPublicIp",
-			Func: fetchPublicIp,
-		},
+		Func:  &publicIpNamedFunc,
 	},
-	"datetime": {
-		Title: "Date/Time",
-		retrieveCmd: NamedFunc{
-			Id:   "fetchDateTime",
-			Func: fetchDateTime,
-		},
+	"software": {
+		Title: "Software",
+		Func:  &softwareNamedFunc,
+	},
+	"terminal": {
+		Title: "Terminal",
+		Func:  &termProgramNamedFunc,
 	},
 }
 
-// loadConfig loads and parses the YAML configuration file
-func loadConfig(path string) (*Config, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open config file: %w", err)
-	}
-	defer file.Close()
+// Load the configuration file and check if the requested items are valid
+// If no configuration file is provided, use the default values defined above.
+func loadAndCheckConfig(configFilePath string) (err error) {
+	if configFilePath != "" {
+		file, err := os.Open(configFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to open config file: %w", err)
+		}
+		defer file.Close()
 
-	// Parse the YAML file into the Config structure
-	var config Config
-	decoder := yaml.NewDecoder(file)
-	if err := decoder.Decode(&config); err != nil {
-		return nil, fmt.Errorf("failed to decode YAML file: %w", err)
+		// Parse the YAML file into the Config structure
+		decoder := yaml.NewDecoder(file)
+		if err := decoder.Decode(config); err != nil {
+			return err
+		}
+
+		if config.Items != nil {
+			// Check if all requested items are valid
+			for _, item := range config.Items {
+				if _, exists := availableItems[item]; !exists {
+					return fmt.Errorf("invalid item: %s", item)
+				}
+			}
+			// Make sure there is no duplicate
+			config.Items = uniqueStrings(config.Items)
+		} else {
+			config.Items = defaultItems
+		}
+
+		if config.CacheFilePath != nil {
+			// Replace '~' with the home directory
+			if strings.HasPrefix(*config.CacheFilePath, "~") {
+				homeDir, err := os.UserHomeDir()
+				if err != nil {
+					return fmt.Errorf("error getting home directory: %w", err)
+				}
+				*config.CacheFilePath = filepath.Join(homeDir, (*config.CacheFilePath)[1:])
+			}
+		} else {
+			config.CacheFilePath = &defaultCacheFilePath
+		}
+	} else {
+		config = &Config{
+			CacheFilePath: &defaultCacheFilePath,
+			Items:         defaultItems,
+		}
 	}
 
-	return &config, nil
+	return nil
 }
