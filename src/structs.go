@@ -7,6 +7,14 @@ Here are the two main structs
 - systemProfilerInfo: contains all the information retrieved from system_profiler
 */
 
+type logo struct {
+	Lines []struct {
+		Color256 string `yaml:"color256"`
+		Color16  string `yaml:"color16"`
+		Text     string `yaml:"text"`
+	} `yaml:"lines"`
+}
+
 /* ---------- Structs that hold the fetched information ---------- */
 // Information about a display (screen)
 // It is a subset of the info struct.

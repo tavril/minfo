@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
 // helper to create a line of information
@@ -191,44 +193,76 @@ func printInfo(hostInfo *info, withLogo bool) {
 
 	/* ---------- Display the information ---------- */
 	if withLogo {
-		appleLogoLines := [][]string{
-			{colorGreen, "                    ##           "},
-			{colorGreen, "                  ####           "},
-			{colorGreen, "                #####            "},
-			{colorGreen, "               ####              "},
-			{colorGreen, "      ########   ############    "},
-			{colorGreen, "    ##########################   "},
-			{colorYellow, "  ###########################    "},
-			{colorYellow, "  ##########################     "},
-			{colorOrange, " ##########################      "},
-			{colorOrange, " ##########################      "},
-			{colorRed, " ###########################     "},
-			{colorRed, "  ############################   "},
-			{colorPurple, "  #############################  "},
-			{colorPurple, "   ############################  "},
-			{colorBlue, "     ########################    "},
-			{colorBlue, "      ######################     "},
-			{colorBlue, "        #######    #######       "},
+
+		file, err := os.Open(fmt.Sprintf("%s/git/minfo/logos/apple.yaml", os.Getenv("HOME")))
+		if err != nil {
+			//return fmt.Errorf("failed to open config file: %w", err)
+			return
 		}
-		lenLogoLine := len(appleLogoLines[0][1])
+		defer file.Close()
+
+		// Parse the YAML file into the Config structure
+		decoder := yaml.NewDecoder(file)
+
+		var logo logo
+		var logoLines [][]string
+		if err := decoder.Decode(&logo); err != nil {
+			//return err
+			return
+		}
+		var is256Color bool
+		if strings.Contains(os.Getenv("TERM"), "256") {
+			is256Color = true
+		}
+		for _, line := range logo.Lines {
+			if is256Color {
+				logoLines = append(logoLines, []string{line.Color256, line.Text})
+			} else {
+				logoLines = append(logoLines, []string{line.Color16, line.Text})
+			}
+		}
+		lenLogoLine := len(logoLines[0][1])
+
+		/*
+			defaultLogoLines := [][]string{
+				{colorGreen, "                    ##           "},
+				{colorGreen, "                  ####           "},
+				{colorGreen, "                #####            "},
+				{colorGreen, "               ####              "},
+				{colorGreen, "      ########   ############    "},
+				{colorGreen, "    ##########################   "},
+				{colorYellow, "  ###########################    "},
+				{colorYellow, "  ##########################     "},
+				{colorOrange, " ##########################      "},
+				{colorOrange, " ##########################      "},
+				{colorRed, " ###########################     "},
+				{colorRed, "  ############################   "},
+				{colorPurple, "  #############################  "},
+				{colorPurple, "   ############################  "},
+				{colorBlue, "     ########################    "},
+				{colorBlue, "      ######################     "},
+				{colorBlue, "        #######    #######       "},
+			}
+		*/
 
 		/* ---------- Vertically center the logo and the information ---------- */
 		// Here, we want to vertically center the display of
 		//the logo and the information. So we calculate a padding to be added
 		// to the top and bottom of either the logo or the information,
 		// depending on which one is shorter.
-		lenAppleLogoLines := len(appleLogoLines)
-		lenInfoLines := len(infoLines)
-		maxLines := max(lenAppleLogoLines, lenInfoLines)
 
-		if lenAppleLogoLines != lenInfoLines {
-			minLines := min(lenAppleLogoLines, lenInfoLines)
+		lenLogoLines := len(logoLines)
+		lenInfoLines := len(infoLines)
+		maxLines := max(lenLogoLines, lenInfoLines)
+
+		if lenLogoLines != lenInfoLines {
+			minLines := min(lenLogoLines, lenInfoLines)
 			topPadding := (maxLines - minLines) / 2
 			bottomPadding := maxLines - minLines - topPadding
 			prependArr := make([][]string, 0)
 			appendArr := make([][]string, 0)
 
-			if lenAppleLogoLines > lenInfoLines {
+			if lenLogoLines > lenInfoLines {
 				emptyLine := []string{"", "", "", ""}
 				for i := 0; i < topPadding; i++ {
 					prependArr = append(prependArr, emptyLine)
@@ -243,11 +277,11 @@ func printInfo(hostInfo *info, withLogo bool) {
 				for i := 0; i < topPadding; i++ {
 					prependArr = append(prependArr, emptyLine)
 				}
-				appleLogoLines = append(prependArr, appleLogoLines...)
+				logoLines = append(prependArr, logoLines...)
 				for i := 0; i < bottomPadding; i++ {
 					appendArr = append(appendArr, emptyLine)
 				}
-				appleLogoLines = append(appleLogoLines, appendArr...)
+				logoLines = append(logoLines, appendArr...)
 			}
 		}
 
@@ -255,8 +289,8 @@ func printInfo(hostInfo *info, withLogo bool) {
 		dynamicPadding := getPaddingSize(infoLines)
 		for i := 0; i < maxLines; i++ {
 			output.WriteString(fmt.Sprintf("%s%s%s%-*s%s%s\n",
-				appleLogoLines[i][0],
-				appleLogoLines[i][1],
+				logoLines[i][0],
+				logoLines[i][1],
 				infoLines[i][0],
 				dynamicPadding,
 				infoLines[i][1],
