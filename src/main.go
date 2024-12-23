@@ -1,8 +1,5 @@
 package main
 
-// compile with: go build -ldflags "-s -w" apple_info_motd.go
-// (removes symbols and debug info)
-
 import (
 	"encoding/json"
 	"errors"
@@ -32,7 +29,7 @@ func main() {
 	// - computer model, CPU, GPU, memory, and serial number.
 	// If the cache file does not exist yet, we fetch all the data
 	// that can be cached (even if not requested by the suer), and write it,
-	// expect if explicitly requested by the user to not use the cache.
+	// except if explicitly requested by the user to not use the cache.
 	if cmdLine.Cache {
 		if err := readCacheFile(*config.CacheFilePath); err != nil {
 			if !errors.Is(err, os.ErrNotExist) && err != errEmptyCache {
@@ -66,12 +63,11 @@ func main() {
 					spDataTypes[*item.SPDataType] = false
 				}
 			} else {
-				// Either the spDataType is not cached is not yet
-				// in the map, or it is in the map but set to false,
+				// Either the spDataType is not cached yet in the map,
+				// or it is in the map but set to false,
 				// in which case we set it to true.
-				if _, ok := spDataTypes[*item.SPDataType]; !ok {
-					spDataTypes[*item.SPDataType] = true
-				} else if !spDataTypes[*item.SPDataType] {
+				_, ok := spDataTypes[*item.SPDataType]
+				if !ok || !spDataTypes[*item.SPDataType] {
 					spDataTypes[*item.SPDataType] = true
 				}
 			}
@@ -79,8 +75,7 @@ func main() {
 
 		// other data, each fetched by its own function.
 		if item.Func != nil {
-			// For now, no need to deal with cache, as we only cache
-			// (some) system_profiler data.
+			// No need to deal with cache, as we only cache (some) system_profiler data.
 			tasks = append(tasks, func() { (*item.Func).Func(&hostInfo) })
 		}
 	}
@@ -89,7 +84,9 @@ func main() {
 	var spErr error
 	for _, v := range spDataTypes {
 		if v {
-			tasks = append(tasks, func() { spErr = fetchSystemProfiler(&hostInfo, config.Items, spDataTypes, cmdLine.Cache) })
+			tasks = append(tasks,
+				func() { spErr = fetchSystemProfiler(&hostInfo, config.Items, spDataTypes, cmdLine.Cache) },
+			)
 			break
 		}
 	}
