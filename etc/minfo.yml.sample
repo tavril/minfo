@@ -1,5 +1,8 @@
 ---
 cache_file: ~/.minfo-cache.json
+cache: true
+logo: true
+logo_file: ~/.minfo-logo
 items:
   - user
   - hostname
