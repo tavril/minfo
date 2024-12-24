@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
-	"gopkg.in/yaml.v3"
 )
 
 // helper to create a line of information
@@ -26,27 +24,46 @@ func getPaddingSize(infoLines [][]string) int {
 	return paddingSize + 1
 }
 
+func padLogoLines(logoLines *[]string) {
+	// Find the longest line
+	maxLen := 0
+	for _, line := range *logoLines {
+		if len(line) > maxLen {
+			maxLen = len(line)
+		}
+	}
+
+	// Pad each line
+	for i, line := range *logoLines {
+		if len(line) < maxLen {
+			(*logoLines)[i] = fmt.Sprintf("%-*s", maxLen, line) // Left-align and pad with spaces
+		}
+	}
+}
+
 // Print the information in a human-readable format
-func printInfo(hostInfo *info, withLogo bool) {
+func printInfo(hostInfo *info) error {
 	var output strings.Builder
 
 	if strings.Contains(os.Getenv("TERM"), "256") {
-		colorRed = "\033[38;5;160m"
-		colorGreen = "\033[38;5;028m"
-		colorYellow = "\033[38;5;220m"
-		colorBlue = "\033[38;5;021m"
-		colorPurple = "\033[38;5;054m"
+		//colorRed = "\033[38;5;160m"
+		//colorGreen = "\033[38;5;028m"
+		//colorYellow = "\033[38;5;220m"
+		//colorBlue = "\033[38;5;021m"
+		//colorPurple = "\033[38;5;054m"
 		colorCyan = "\033[38;5;039m"
-		colorOrange = "\033[38;5;202m"
+		//colorOrange = "\033[38;5;202m"
 	} else {
-		colorRed = "\033[00;31m"
-		colorGreen = "\033[00;32m"
-		colorYellow = "\033[00;33m"
-		colorBlue = "\033[00;34m"
-		colorPurple = "\033[00;35m"
+		//colorRed = "\033[00;31m"
+		//colorGreen = "\033[00;32m"
+		//colorYellow = "\033[00;33m"
+		//colorBlue = "\033[00;34m"
+		//colorPurple = "\033[00;35m"
 		colorCyan = "\033[00;36m"
-		colorOrange = "\033[00;91m"
+		//colorOrange = "\033[00;91m"
 	}
+	colorReset := "\033[0m"
+
 	// Each item of infoLines is a slice of strings representing a line
 	// of information. Each line contains:
 	// - Color code for the Item title
@@ -192,58 +209,55 @@ func printInfo(hostInfo *info, withLogo bool) {
 	}
 
 	/* ---------- Display the information ---------- */
-	if withLogo {
-
-		file, err := os.Open(fmt.Sprintf("%s/git/minfo/logos/apple.yaml", os.Getenv("HOME")))
-		if err != nil {
-			//return fmt.Errorf("failed to open config file: %w", err)
-			return
-		}
-		defer file.Close()
-
-		// Parse the YAML file into the Config structure
-		decoder := yaml.NewDecoder(file)
-
-		var logo logo
+	if *config.DisplayLogo {
+		// The logo file consists of lines of text that will be displayed
+		// Either each line just contains the text to be displayed, or
+		// each line contains two color codes (for 256 colors terminals and 16 colors one)
+		// followed by the text to be displayed. --> In that case the fields
+		// are separated by a colon.
 		var logoLines [][]string
-		if err := decoder.Decode(&logo); err != nil {
-			//return err
-			return
+		var colorField int // (first field = 256 colors, second field = 16 colors)
+		if !strings.Contains(os.Getenv("TERM"), "256") {
+			colorField = 1
 		}
-		var is256Color bool
-		if strings.Contains(os.Getenv("TERM"), "256") {
-			is256Color = true
+
+		data, err := os.ReadFile(*config.Logo)
+		if err != nil {
+			return err
 		}
-		for _, line := range logo.Lines {
-			if is256Color {
-				logoLines = append(logoLines, []string{line.Color256, line.Text})
-			} else {
-				logoLines = append(logoLines, []string{line.Color16, line.Text})
+		if len(data) == 0 {
+			return fmt.Errorf("Invalid logo (empty)")
+		}
+
+		// Let's remove empty lines and comments
+		allLines := strings.Split(string(data), "\n")
+		lines := make([]string, 0)
+		for _, line := range allLines {
+			if line == "" || strings.HasPrefix(line, "//") {
+				continue
 			}
+			lines = append(lines, line)
+		}
+		// Padding each lines with spaces to that each lines is the same length
+		padLogoLines(&lines)
+
+		var logoColorLine string
+		for _, line := range lines {
+			fields := strings.Split(line, ":")
+			numFields := len(fields)
+			var textField int
+			// we support not having a color field
+			if numFields > 1 {
+				textField = 2
+				logoColorLine = strings.ReplaceAll(fields[colorField], `\033`, "\033")
+			} else {
+				logoColorLine = colorReset
+
+			}
+			// Replace literal \033 with the actual ANSI escape character
+			logoLines = append(logoLines, []string{logoColorLine, fields[textField]})
 		}
 		lenLogoLine := len(logoLines[0][1])
-
-		/*
-			defaultLogoLines := [][]string{
-				{colorGreen, "                    ##           "},
-				{colorGreen, "                  ####           "},
-				{colorGreen, "                #####            "},
-				{colorGreen, "               ####              "},
-				{colorGreen, "      ########   ############    "},
-				{colorGreen, "    ##########################   "},
-				{colorYellow, "  ###########################    "},
-				{colorYellow, "  ##########################     "},
-				{colorOrange, " ##########################      "},
-				{colorOrange, " ##########################      "},
-				{colorRed, " ###########################     "},
-				{colorRed, "  ############################   "},
-				{colorPurple, "  #############################  "},
-				{colorPurple, "   ############################  "},
-				{colorBlue, "     ########################    "},
-				{colorBlue, "      ######################     "},
-				{colorBlue, "        #######    #######       "},
-			}
-		*/
 
 		/* ---------- Vertically center the logo and the information ---------- */
 		// Here, we want to vertically center the display of
@@ -288,7 +302,7 @@ func printInfo(hostInfo *info, withLogo bool) {
 		/* ---------- Prepare the logo and the information ---------- */
 		dynamicPadding := getPaddingSize(infoLines)
 		for i := 0; i < maxLines; i++ {
-			output.WriteString(fmt.Sprintf("%s%s%s%-*s%s%s\n",
+			output.WriteString(fmt.Sprintf("%s%s  %s%-*s%s%s\n",
 				logoLines[i][0],
 				logoLines[i][1],
 				infoLines[i][0],
@@ -313,4 +327,5 @@ func printInfo(hostInfo *info, withLogo bool) {
 	}
 
 	fmt.Printf("%s", output.String())
+	return nil
 }

@@ -12,9 +12,9 @@ import (
 // This struct represents the configuration file
 type Config struct {
 	CacheFilePath *string  `yaml:"cache_file,omitempty"`
-	NoLogo        *bool    `yaml:"no_logo,omitempty"`
-	Json          *bool    `yaml:"json,omitempty"`
-	NoCache       *bool    `yaml:"no_cache,omitempty"`
+	DisplayLogo   *bool    `yaml:"display_logo,omitempty"`
+	Logo          *string  `yaml:"logo_file,omitempty"`
+	Cache         *bool    `yaml:"cache,omitempty"`
 	Items         []string `yaml:"items,omitempty"`
 }
 
@@ -22,6 +22,7 @@ var config = &Config{}
 
 /* ---------- Default Configuration ---------- */
 var defaultCacheFilePath = fmt.Sprintf("%s/.minfo-cache.json", os.Getenv("HOME"))
+var defaultLogoFielPath = fmt.Sprintf("%s/.minfo-logo", os.Getenv("HOME"))
 var defaultItems = []string{
 	"user",
 	"hostname",
@@ -189,9 +190,9 @@ func loadAndCheckConfig(configFilePath string) (err error) {
 	if configFilePath == "" {
 		config = &Config{
 			CacheFilePath: &defaultCacheFilePath,
-			NoLogo:        nil,
-			Json:          nil,
-			NoCache:       nil,
+			DisplayLogo:   nil,
+			Logo:          &defaultLogoFielPath,
+			Cache:         nil,
 			Items:         defaultItems,
 		}
 		return nil
@@ -220,6 +221,14 @@ func loadAndCheckConfig(configFilePath string) (err error) {
 	} else {
 		config.Items = defaultItems
 	}
+	if config.DisplayLogo == nil {
+		config.DisplayLogo = new(bool)
+		*config.DisplayLogo = true // This default value might be overridden by the command line
+	}
+	if config.Cache == nil {
+		config.Cache = new(bool)
+		*config.Cache = true // This default value might be overridden by the command line
+	}
 
 	if config.CacheFilePath != nil {
 		// Replace '~' with the home directory
@@ -232,6 +241,18 @@ func loadAndCheckConfig(configFilePath string) (err error) {
 		}
 	} else {
 		config.CacheFilePath = &defaultCacheFilePath
+	}
+	if config.Logo != nil {
+		// Replace '~' with the home directory
+		if strings.HasPrefix(*config.Logo, "~") {
+			homeDir, err := os.UserHomeDir()
+			if err != nil {
+				return fmt.Errorf("error getting home directory: %w", err)
+			}
+			*config.Logo = filepath.Join(homeDir, (*config.Logo)[1:])
+		}
+	} else {
+		config.Logo = &defaultLogoFielPath
 	}
 
 	return nil

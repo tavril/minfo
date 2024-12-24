@@ -7,9 +7,10 @@ minfo(1) -- display information about your Apple computer
 `minfo -j|--json`
 `minfo -c|--cache[=false]`
 `minfo -r|--refresh[=false]`
-`minfo -l|--logo[]=false]`
+`minfo -d|--display-logo[=false]`
+`minfo -l|--logo <path/to/logo>`
 `minfo -i|--items`
-`minfo -c|--config config-file`
+`minfo -c|--config </path/to/config-file>`
 
 ## DESCRIPTION
 
@@ -52,9 +53,14 @@ The ASCII art logo support both 16 and 256 colors terminal.
     Optional (default: false).
     `--refresh=true` is mutually exclusive with `--cache=false`.
 
-  * `-l|--logo`:
+  * `-d|--display-logo`:
     Display/don't display the ASCII art image.
     Optional (default: true).
+    Ignored if --json is set.
+
+  * `-l|--logo`:
+    ASCII art logo to use
+    Optional (default ~/.minfo-logo)
     Ignored if --json is set.
 
   * `-i|--items`:
@@ -77,8 +83,23 @@ Location of the cache file can be customized in the configuration file.
 
 ## Logo
 
-You can decide not to display the Apple logo with command line parameter `--logo=false`.
+You can decide not to display the Apple logo with command line parameter `--display-logo=false`.
 Logo is displayed in color, and support 16/256colors terminals.
+
+You can provide your own ASCII art logo.
+The format for the file is the following:
+<ansi_code_color256>:<ansi_code_color16>:text
+
+or just text (but if you provide colors, )
+
+with:
+- <ansi_code_color256> being the ANSI color for 256 colors terminal
+- <ansi_code_color16> being the ANSI color for 16 colors terminal
+
+Note that empty lines and lines starting with `//` are ignored.
+
+ex: `\033[38;5;028m:\033[00;32m:      ########   ############`
+
 
 ## JSON output
 
@@ -86,16 +107,35 @@ You can output JSON instead of text by using command line parameter `--json`.
 
 ## Configuration file
 
-Configuration file is optional. If no configuration file exist, default choices will be made.
+Configuration file is optional.
+- The configuration file is written in YAML.
+- If no configuration file exist, default choices will be made.
+- If the configuration file exists but some items are not defined, default choices will be made.
+
 In the configuration file, you can define
 
 - Location of the cache file,
+- Location of the ASCII art logo,
+- Should we use the cache?
+- Should we display the logo?
 - Items to be displayed.
 
 Choose the list of items to be displayed among the items listed when running `minfo --items`.
 
 By default, the tool will look for a configuration file located at `~/.config/minfo.yml`,
 but you can specify another location with command line parameter `--config <path_to_file>`.
+
+### Example of configuration file
+
+    ---
+    cache_file: ~/.minfo-cache
+    cache: true
+    logo_file: /Users/Shared/minfo-logo
+    logo: true
+    items:
+      - user
+      - os
+      - model
 
 ## Examples
 

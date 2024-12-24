@@ -16,24 +16,29 @@ Description:
     It only works on MacOs.
 
 Usage:
-    %s [--config <path>] [-j|--json] [-i|--items] [-v|--version]
-    %s [-r|--refresh[=false]] [-c|--cache[=false]] [-l|--logo[=false]]
+    %s [--config <path>] [-j|--json] [-i|--items] [-v|--version] [-l|--logo <path>]
+    %s [-r|--refresh[=false]] [-c|--cache[=false]] [-d|--display-logo[=false]]
 
 Options:
-    --config <path>          Path to the configuration file (default: %s).
-    -l, --logo[=false]       Display the ASCII art logo (default: true).
-    -j, --json[=false]       Display information in JSON instead of plain text (default: false).
-    -c, --cache[=false]      Use cache file (default: true).
-    -r, --refresh[=false]    Refresh the cache file (default: false).
-    -i, --items              Display all available information to display and exit.
-    -v, --version            Show version and exit.
-    -h, --help               Show this help message and exit.
+    --config <path>             Path to the configuration file (default: %s).
+    -d, --display-logo[=false]  Display the ASCII art logo (default: true).
+    -l, --logo[=<path>]         Path to ASCII art logo file (default: xxxx)
+    -j, --json[=false]          Display information in JSON instead of plain text (default: false).
+    -c, --cache[=false]         Use cache file (default: true).
+    -r, --refresh[=false]       Refresh the cache file (default: false).
+    -i, --items                 Display all available information to display and exit.
+    -v, --version               Show version and exit.
+    -h, --help                  Show this help message and exit.
 
 Having a configuration file is optional. If you don't provide the --config parameter,
 minfo will look for a configuration file at the default path.
 If the configuration file does not exist, minfo will use the default values.
 
+Command line argument --cache and --display-logo will override the values in the configuration file.
+
 --refresh=true and --cache=false are mutually exclusive.
+
+If you provide --json=true, then --display-logo will be ignored.
 
 `, appName, appName, appName, defaultConfigFile)
 }
@@ -41,8 +46,9 @@ If the configuration file does not exist, minfo will use the default values.
 type cmdLineParams struct {
 	Json           bool
 	RefreshCache   bool
-	Cache          bool
-	Logo           bool
+	Cache          *bool
+	DisplayLogo    *bool
+	Logo           *string
 	Items          bool
 	Version        bool
 	ConfigFilePath string
@@ -54,14 +60,15 @@ func parseCmdLineArgs(args []string) (*cmdLineParams, error) {
 
 	var (
 		jsonFlag           bool
-		cacheFlag          bool
 		refreshCacheFlag   bool
-		logoFlag           bool
 		itemsFlag          bool
 		versionFlag        bool
 		configFilePathFlag string
 		helpFlag           bool
 	)
+	displayLogoFlag := new(bool)
+	cacheFlag := new(bool)
+	logoFlag := new(string)
 
 	fs.BoolVar(&helpFlag, "help", false, "print this help message and exit.")
 	fs.BoolVar(&helpFlag, "h", false, "print this help message and exit.")
@@ -77,14 +84,17 @@ func parseCmdLineArgs(args []string) (*cmdLineParams, error) {
 	fs.BoolVar(&jsonFlag, "json", false, "display information in JSON instead of plain text (default: false).")
 	fs.BoolVar(&jsonFlag, "j", false, "display information in JSON instead of plain text (default: false).")
 
-	fs.BoolVar(&cacheFlag, "cache", true, "use cache file (default: true).")
-	fs.BoolVar(&cacheFlag, "c", true, "use cache file (default: true).")
+	fs.BoolVar(cacheFlag, "cache", true, "use cache file (default: true).")
+	fs.BoolVar(cacheFlag, "c", true, "use cache file (default: true).")
 
 	fs.BoolVar(&refreshCacheFlag, "refresh", false, "refresh the cache file (default: false).")
 	fs.BoolVar(&refreshCacheFlag, "r", false, "refresh the cache file (default: false).")
 
-	fs.BoolVar(&logoFlag, "logo", true, "display the ASCII art logo (default: true).")
-	fs.BoolVar(&logoFlag, "l", true, "display the ASCII art logo (default: true).")
+	fs.BoolVar(displayLogoFlag, "display-logo", true, "display the ASCII art logo (default: true).")
+	fs.BoolVar(displayLogoFlag, "d", true, "display the ASCII art logo (default: true).")
+
+	fs.StringVar(logoFlag, "logo", "", "path to the logo file")
+	fs.StringVar(logoFlag, "l", "", "path to the logo file")
 
 	err := fs.Parse(args)
 	if err != nil {
@@ -94,10 +104,37 @@ func parseCmdLineArgs(args []string) (*cmdLineParams, error) {
 		fs.Usage()
 		os.Exit(0)
 	}
+
+	// Check if flags --display-logo, logo and --cache were explicitly set
+	// in which case they would override the values in configuration file.
+	displayLogoFlagSet := false
+	logoFlagSet := false
+	cacheFlagSet := false
+	fs.Visit(func(f *flag.Flag) {
+		if f.Name == "display-logo" || f.Name == "d" {
+			displayLogoFlagSet = true
+		} else if f.Name == "logo" || f.Name == "l" {
+			logoFlagSet = true
+		} else if f.Name == "cache" || f.Name == "c" {
+			cacheFlagSet = true
+		}
+
+	})
+	if !displayLogoFlagSet {
+		displayLogoFlag = nil
+	}
+	if !logoFlagSet {
+		logoFlag = nil
+	}
+	if !cacheFlagSet {
+		cacheFlag = nil
+	}
+
 	return &cmdLineParams{
 		Json:           jsonFlag,
 		RefreshCache:   refreshCacheFlag,
 		Cache:          cacheFlag,
+		DisplayLogo:    displayLogoFlag,
 		Logo:           logoFlag,
 		Items:          itemsFlag,
 		Version:        versionFlag,
@@ -110,14 +147,14 @@ func (cmdLine *cmdLineParams) controlCmdLineParams() {
 		fmt.Printf("minfo %s (commit %s)\n", GitVersion, GitCommit)
 		os.Exit(0)
 	}
-	if !cmdLine.Cache && cmdLine.RefreshCache {
+	if (cmdLine.Cache != nil && !*cmdLine.Cache) && cmdLine.RefreshCache {
 		log.Fatalf("--cache=false and --refresh=true are mutually exclusive")
 	}
 	if cmdLine.Items {
 		fmt.Println("Available information to choose from:")
 		var iArr []string
 
-		for k, _ := range availableItems {
+		for k := range availableItems {
 			iArr = append(iArr, k)
 		}
 		sort.Strings(iArr)

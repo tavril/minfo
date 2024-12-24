@@ -4,7 +4,7 @@
 .SH "NAME"
 \fBminfo\fR \- display information about your Apple computer
 .SH "SYNOPSIS"
-\fBminfo\fR \fBminfo \-j|\-\-json\fR \fBminfo \-c|\-\-cache[=false]\fR \fBminfo \-r|\-\-refresh[=false]\fR \fBminfo \-l|\-\-logo[]=false]\fR \fBminfo \-i|\-\-items\fR \fBminfo \-c|\-\-config config\-file\fR
+\fBminfo\fR \fBminfo \-j|\-\-json\fR \fBminfo \-c|\-\-cache[=false]\fR \fBminfo \-r|\-\-refresh[=false]\fR \fBminfo \-d|\-\-display\-logo[=false]\fR \fBminfo \-l|\-\-logo <path/to/logo>\fR \fBminfo \-i|\-\-items\fR \fBminfo \-c|\-\-config </path/to/config\-file>\fR
 .SH "DESCRIPTION"
 \fBminfo\fR is a tool which displays informatino about your computer/OS\. It only works on \fBmacOS\fR\.
 .P
@@ -40,8 +40,11 @@ Use/Don't use the cache file\. Optional (default: true)\. \fB\-\-cache=false\fR 
 \fB\-r|\-\-refresh\fR
 Refresh/Don't refresh the cache file\. Optional (default: false)\. \fB\-\-refresh=true\fR is mutually exclusive with \fB\-\-cache=false\fR\.
 .TP
-\fB\-l|\-\-logo\fR
+\fB\-d|\-\-display\-logo\fR
 Display/don't display the ASCII art image\. Optional (default: true)\. Ignored if \-\-json is set\.
+.TP
+\fB\-l|\-\-logo\fR
+ASCII art logo to use Optional (default ~/\.minfo\-logo) Ignored if \-\-json is set\.
 .TP
 \fB\-i|\-\-items\fR
 Displays the list of all available items and exit\.
@@ -58,13 +61,43 @@ You can ask the tool to refresh the cache with command line parameter \fB\-\-ref
 .P
 \fB\-\-refresh=true\fR and \fB\-\-cache=false\fR are mutualy exclusive\.
 .SH "Logo"
-You can decide not to display the Apple logo with command line parameter \fB\-\-logo=false\fR\. Logo is displayed in color, and support 16/256colors terminals\.
+You can decide not to display the Apple logo with command line parameter \fB\-\-display\-logo=false\fR\. Logo is displayed in color, and support 16/256colors terminals\.
+.P
+You can provide your own ASCII art logo\. The format for the file is the following: \fIansi_code_color256\fR:\fIansi_code_color16\fR:text
+.P
+or just text (but if you provide colors, )
+.P
+with:
+.IP "\(bu" 4
+\fIansi_code_color256\fR being the ANSI color for 256 colors terminal
+.IP "\(bu" 4
+\fIansi_code_color16\fR being the ANSI color for 16 colors terminal
+.IP "" 0
+.P
+Note that empty lines and lines starting with \fB//\fR are ignored\.
+.P
+ex: \fB\e033[38;5;028m:\e033[00;32m: ######## ############\fR
 .SH "JSON output"
 You can output JSON instead of text by using command line parameter \fB\-\-json\fR\.
 .SH "Configuration file"
-Configuration file is optional\. If no configuration file exist, default choices will be made\. In the configuration file, you can define
+Configuration file is optional\.
+.IP "\(bu" 4
+The configuration file is written in YAML\.
+.IP "\(bu" 4
+If no configuration file exist, default choices will be made\.
+.IP "\(bu" 4
+If the configuration file exists but some items are not defined, default choices will be made\.
+.IP "" 0
+.P
+In the configuration file, you can define
 .IP "\(bu" 4
 Location of the cache file,
+.IP "\(bu" 4
+Location of the ASCII art logo,
+.IP "\(bu" 4
+Should we use the cache?
+.IP "\(bu" 4
+Should we display the logo?
 .IP "\(bu" 4
 Items to be displayed\.
 .IP "" 0
@@ -72,6 +105,18 @@ Items to be displayed\.
 Choose the list of items to be displayed among the items listed when running \fBminfo \-\-items\fR\.
 .P
 By default, the tool will look for a configuration file located at \fB~/\.config/minfo\.yml\fR, but you can specify another location with command line parameter \fB\-\-config <path_to_file>\fR\.
+.SS "Example of configuration file"
+.nf
+\-\-\-
+cache_file: ~/\.minfo\-cache
+cache: true
+logo_file: /Users/Shared/minfo\-logo
+logo: true
+items:
+  \- user
+  \- os
+  \- model
+.fi
 .SH "Examples"
 Default layout
 .IP "" 4

@@ -23,6 +23,15 @@ func main() {
 	if err := loadAndCheckConfig(cmdLine.ConfigFilePath); err != nil {
 		log.Fatalf("Error loading config: %v", err)
 	}
+	if cmdLine.Cache != nil {
+		config.Cache = cmdLine.Cache
+	}
+	if cmdLine.DisplayLogo != nil {
+		config.DisplayLogo = cmdLine.DisplayLogo
+	}
+	if cmdLine.Logo != nil {
+		config.Logo = cmdLine.Logo
+	}
 
 	/* ---------- Deal with cache ---------- */
 	// We cache some data which are not going to change:
@@ -30,7 +39,7 @@ func main() {
 	// If the cache file does not exist yet, we fetch all the data
 	// that can be cached (even if not requested by the suer), and write it,
 	// except if explicitly requested by the user to not use the cache.
-	if cmdLine.Cache {
+	if *config.Cache {
 		if err := readCacheFile(*config.CacheFilePath); err != nil {
 			if !errors.Is(err, os.ErrNotExist) && err != errEmptyCache {
 				log.Fatalf("Error reading cache file: %v", err)
@@ -58,7 +67,7 @@ func main() {
 
 		// system_profiler data
 		if item.SPDataType != nil {
-			if item.IsCached && cmdLine.Cache {
+			if item.IsCached && *config.Cache {
 				if _, ok := spDataTypes[*item.SPDataType]; !ok {
 					spDataTypes[*item.SPDataType] = false
 				}
@@ -85,7 +94,7 @@ func main() {
 	for _, v := range spDataTypes {
 		if v {
 			tasks = append(tasks,
-				func() { spErr = fetchSystemProfiler(&hostInfo, config.Items, spDataTypes, cmdLine.Cache) },
+				func() { spErr = fetchSystemProfiler(&hostInfo, config.Items, spDataTypes, *config.Cache) },
 			)
 			break
 		}
@@ -136,6 +145,8 @@ func main() {
 		}
 		fmt.Println(string(jsonData))
 	} else {
-		printInfo(&hostInfo, cmdLine.Logo)
+		if err := printInfo(&hostInfo); err != nil {
+			log.Fatalf("Error printing info: %v", err)
+		}
 	}
 }
