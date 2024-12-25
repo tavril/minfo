@@ -65,7 +65,7 @@ You can decide not to display the Apple logo with command line parameter \fB\-\-
 .P
 You can provide your own ASCII art logo\. The format for the file is the following: \fIansi_code_color256\fR:\fIansi_code_color16\fR:text
 .P
-or just text (but if you provide colors, )
+or just text (but if you provide colors, you need to provide both 256/16 colors)\.
 .P
 with:
 .IP "\(bu" 4
@@ -76,7 +76,13 @@ with:
 .P
 Note that empty lines and lines starting with \fB//\fR are ignored\.
 .P
-ex: \fB\e033[38;5;028m:\e033[00;32m: ######## ############\fR
+If you installed \fBminfo\fR from homebrew, you'll have sample logos at \fB$HOMEBREW_PREFIX/share/minfo/\fR
+.SS "Example (single line):"
+\fB\e033[38;5;028m:\e033[00;32m: ######## ############\fR
+.P
+or
+.P
+` ######## ############`
 .SH "JSON output"
 You can output JSON instead of text by using command line parameter \fB\-\-json\fR\.
 .SH "Configuration file"

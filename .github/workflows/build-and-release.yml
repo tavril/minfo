@@ -43,4 +43,4 @@ jobs:
           goarch: ${{ matrix.goarch }}
           build_command: make
           binary_name: minfo
-          extra_files: doc/minfo.1 etc/minfo.yml.sample logos/apple logos/apple-nocolor
+          extra_files: doc/minfo.1 etc logos logos

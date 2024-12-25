@@ -22,7 +22,8 @@ var config = &Config{}
 
 /* ---------- Default Configuration ---------- */
 var defaultCacheFilePath = fmt.Sprintf("%s/.minfo-cache.json", os.Getenv("HOME"))
-var defaultLogoFielPath = fmt.Sprintf("%s/.minfo-logo", os.Getenv("HOME"))
+var defaultLogoFilePathBrewArm = "/opt/homebrew/share/minfo/apple"
+var defaultLogoFilePathBrewIntel = "/usr/local/hombrew/share/minfo/apple"
 var defaultItems = []string{
 	"user",
 	"hostname",
@@ -184,14 +185,25 @@ var availableItems = map[string]item{
 	},
 }
 
+func getDefaultLogoFilePath() (defaultLogoFilePath *string) {
+	switch arch {
+	case "arm64":
+		defaultLogoFilePath = &defaultLogoFilePathBrewArm
+	case "x86_64":
+		defaultLogoFilePath = &defaultLogoFilePathBrewIntel
+	}
+	return
+}
+
 // Load the configuration file and check if the requested items are valid
 // If no configuration file is provided, use the default values defined above.
 func loadAndCheckConfig(configFilePath string) (err error) {
 	if configFilePath == "" {
+		defaultLogoFilePath := getDefaultLogoFilePath()
 		config = &Config{
 			CacheFilePath: &defaultCacheFilePath,
 			DisplayLogo:   nil,
-			Logo:          &defaultLogoFielPath,
+			Logo:          defaultLogoFilePath,
 			Cache:         nil,
 			Items:         defaultItems,
 		}
@@ -252,7 +264,7 @@ func loadAndCheckConfig(configFilePath string) (err error) {
 			*config.Logo = filepath.Join(homeDir, (*config.Logo)[1:])
 		}
 	} else {
-		config.Logo = &defaultLogoFielPath
+		config.Logo = getDefaultLogoFilePath()
 	}
 
 	return nil
