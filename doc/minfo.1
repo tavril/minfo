@@ -29,7 +29,7 @@ The ASCII art logo support both 16 and 256 colors terminal\.
 .SH "OPTIONS"
 .TP
 \fB\-c|\-\-config config\-file\fR
-Path to the configuration file to use\. If there is no configuration file, default choices will be made\. Optional (default: \fB~/\.config/minfo\.yaml\fR)\.
+Path to the configuration file to use\. If there is no configuration file, default choices will be made\. Optional (default: \fB~/\.config/minfo/config\.yaml\fR)\.
 .TP
 \fB\-j|\-\-json\fR
 Displays the information as JSON instead plain text\. Optional (default: false)\.
@@ -44,7 +44,7 @@ Refresh/Don't refresh the cache file\. Optional (default: false)\. \fB\-\-refres
 Display/don't display the ASCII art image\. Optional (default: true)\. Ignored if \-\-json is set\.
 .TP
 \fB\-l|\-\-logo\fR
-ASCII art logo to use Optional (default ~/\.minfo\-logo) Ignored if \-\-json is set\.
+ASCII art logo to use Optional (default $HOMEBREW_PREFIX/share/minfo/apple or $HOME/\.config/minfo/logo) Ignored if \-\-json is set\.
 .TP
 \fB\-i|\-\-items\fR
 Displays the list of all available items and exit\.
@@ -63,7 +63,7 @@ You can ask the tool to refresh the cache with command line parameter \fB\-\-ref
 .SH "Logo"
 You can decide not to display the Apple logo with command line parameter \fB\-\-display\-logo=false\fR\. Logo is displayed in color, and support 16/256colors terminals\.
 .P
-You can provide your own ASCII art logo\. The format for the file is the following: \fIansi_code_color256\fR:\fIansi_code_color16\fR:text
+You can provide your own ASCII art logo\. The format for the file is the following: \fB<ansi_code_color256> <ansi_code_color16> text\fR
 .P
 or just text (but if you provide colors, you need to provide both 256/16 colors)\.
 .P
@@ -76,9 +76,9 @@ with:
 .P
 Note that empty lines and lines starting with \fB//\fR are ignored\.
 .P
-If you installed \fBminfo\fR from homebrew, you'll have sample logos at \fB$HOMEBREW_PREFIX/share/minfo/\fR
+If you installed \fBminfo\fR from homebrew, you'll have sample logos at \fB$HOMEBREW_PREFIX/share/minfo/\fR\. Default logo will be \fB$HOMEBREW_PREFIX/share/minfo/apple\fR or \fB$HOME/\.config/minfo/logo\fR\.
 .SS "Example (single line):"
-\fB\e033[38;5;028m:\e033[00;32m: ######## ############\fR
+\fB\e033[38;5;028m \e033[00;32m ######## ############\fR
 .P
 or
 .P
@@ -111,18 +111,8 @@ Items to be displayed\.
 Choose the list of items to be displayed among the items listed when running \fBminfo \-\-items\fR\.
 .P
 By default, the tool will look for a configuration file located at \fB~/\.config/minfo\.yml\fR, but you can specify another location with command line parameter \fB\-\-config <path_to_file>\fR\.
-.SS "Example of configuration file"
-.nf
-\-\-\-
-cache_file: ~/\.minfo\-cache
-cache: true
-logo_file: /Users/Shared/minfo\-logo
-logo: true
-items:
-  \- user
-  \- os
-  \- model
-.fi
+.P
+You will find a sample configuration file in \fB$HOMEBREW_PREFIX/etc/minfo/minfo\.yml\.sample\fR
 .SH "Examples"
 Default layout
 .IP "" 4

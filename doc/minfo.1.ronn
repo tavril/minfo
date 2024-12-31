@@ -37,7 +37,7 @@ The ASCII art logo support both 16 and 256 colors terminal.
   * `-c|--config config-file`:
     Path to the configuration file to use.
     If there is no configuration file, default choices will be made.
-    Optional (default: `~/.config/minfo.yaml`).
+    Optional (default: `~/.config/minfo/config.yaml`).
 
   * `-j|--json`:
     Displays the information as JSON instead plain text.
@@ -60,7 +60,7 @@ The ASCII art logo support both 16 and 256 colors terminal.
 
   * `-l|--logo`:
     ASCII art logo to use
-    Optional (default ~/.minfo-logo)
+    Optional (default $HOMEBREW_PREFIX/share/minfo/apple or $HOME/.config/minfo/logo)
     Ignored if --json is set.
 
   * `-i|--items`:
@@ -88,7 +88,7 @@ Logo is displayed in color, and support 16/256colors terminals.
 
 You can provide your own ASCII art logo.
 The format for the file is the following:
-<ansi_code_color256>:<ansi_code_color16>:text
+`<ansi_code_color256> <ansi_code_color16> text`
 
 or just text (but if you provide colors, you need to provide both 256/16 colors).
 
@@ -99,11 +99,12 @@ with:
 Note that empty lines and lines starting with `//` are ignored.
 
 If you installed `minfo` from homebrew, you'll have sample logos at
-`$HOMEBREW_PREFIX/share/minfo/`
+`$HOMEBREW_PREFIX/share/minfo/`. Default logo will be `$HOMEBREW_PREFIX/share/minfo/apple`
+or `$HOME/.config/minfo/logo`.
 
 ### Example (single line):
 
-`\033[38;5;028m:\033[00;32m:      ########   ############`
+`\033[38;5;028m \033[00;32m       ########   ############`
 
 or
 

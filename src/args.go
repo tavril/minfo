@@ -22,7 +22,8 @@ Usage:
 Options:
     --config <path>             Path to the configuration file (default: %s).
     -d, --display-logo[=false]  Display the ASCII art logo (default: true).
-    -l, --logo[=<path>]         Path to ASCII art logo file (default: xxxx)
+    -l, --logo[=<path>]         Path to ASCII art logo file
+	                            (default: $HOMEBREW_PREFIX/share/minfo/apple or $HOME/.config/minfo/logo).
     -j, --json[=false]          Display information in JSON instead of plain text (default: false).
     -c, --cache[=false]         Use cache file (default: true).
     -r, --refresh[=false]       Refresh the cache file (default: false).
@@ -121,13 +122,13 @@ func parseCmdLineArgs(args []string) (*cmdLineParams, error) {
 
 	})
 	if !displayLogoFlagSet {
-		displayLogoFlag = nil
+		*displayLogoFlag = true
 	}
 	if !logoFlagSet {
-		logoFlag = nil
+		logoFlag = getDefaultLogoFilePath()
 	}
 	if !cacheFlagSet {
-		cacheFlag = nil
+		*cacheFlag = true
 	}
 
 	return &cmdLineParams{

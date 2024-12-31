@@ -21,9 +21,7 @@ type Config struct {
 var config = &Config{}
 
 /* ---------- Default Configuration ---------- */
-var defaultCacheFilePath = fmt.Sprintf("%s/.minfo-cache.json", os.Getenv("HOME"))
-var defaultLogoFilePathBrewArm = "/opt/homebrew/share/minfo/apple"
-var defaultLogoFilePathBrewIntel = "/usr/local/hombrew/share/minfo/apple"
+var defaultCacheFilePath = fmt.Sprintf("%s/.minfo-cache.json", envHome)
 var defaultItems = []string{
 	"user",
 	"hostname",
@@ -186,11 +184,10 @@ var availableItems = map[string]item{
 }
 
 func getDefaultLogoFilePath() (defaultLogoFilePath *string) {
-	switch arch {
-	case "arm64":
-		defaultLogoFilePath = &defaultLogoFilePathBrewArm
-	case "x86_64":
-		defaultLogoFilePath = &defaultLogoFilePathBrewIntel
+	defaultLogoFilePath = new(string)
+	*defaultLogoFilePath = os.Getenv("HOMEBREW_PREFIX")
+	if *defaultLogoFilePath != "" {
+		*defaultLogoFilePath = fmt.Sprintf("%s/share/minfo/apple", *defaultLogoFilePath)
 	}
 	return
 }
@@ -199,11 +196,10 @@ func getDefaultLogoFilePath() (defaultLogoFilePath *string) {
 // If no configuration file is provided, use the default values defined above.
 func loadAndCheckConfig(configFilePath string) (err error) {
 	if configFilePath == "" {
-		defaultLogoFilePath := getDefaultLogoFilePath()
 		config = &Config{
 			CacheFilePath: &defaultCacheFilePath,
 			DisplayLogo:   nil,
-			Logo:          defaultLogoFilePath,
+			Logo:          getDefaultLogoFilePath(),
 			Cache:         nil,
 			Items:         defaultItems,
 		}

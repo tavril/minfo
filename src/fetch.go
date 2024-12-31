@@ -57,7 +57,6 @@ func fetchSystemProfiler(hostInfo *info, items []string, spDataTypes map[string]
 			args = append(args, k)
 		}
 	}
-	args = append([]string{"-json", "-detailLevel", "basic"}, args...)
 	cmd := exec.Command("/usr/sbin/system_profiler", args...)
 	var output string
 	output, err = runCommand(cmd)

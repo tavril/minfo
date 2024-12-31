@@ -217,7 +217,7 @@ func printInfo(hostInfo *info) error {
 		// are separated by a colon.
 		var logoLines [][]string
 		var colorField int // (first field = 256 colors, second field = 16 colors)
-		if !strings.Contains(os.Getenv("TERM"), "256") {
+		if !strings.Contains(os.Getenv("TERM"), "256") && !strings.Contains(os.Getenv("TERM"), "ghostty") {
 			colorField = 1
 		}
 
@@ -241,21 +241,21 @@ func printInfo(hostInfo *info) error {
 		// Padding each lines with spaces to that each lines is the same length
 		padLogoLines(&lines)
 
+		isColoredLogo := false
+		if strings.HasPrefix(lines[0], "\\") {
+			isColoredLogo = true
+		}
 		var logoColorLine string
 		for _, line := range lines {
-			fields := strings.Split(line, ":")
-			numFields := len(fields)
-			var textField int
-			// we support not having a color field
-			if numFields > 1 {
-				textField = 2
+			if isColoredLogo {
+				fields := strings.SplitN(line, " ", 3)
+				// Replace literal \033 with the actual ANSI escape character
 				logoColorLine = strings.ReplaceAll(fields[colorField], `\033`, "\033")
+				logoLines = append(logoLines, []string{logoColorLine, fields[2]})
 			} else {
 				logoColorLine = colorReset
-
+				logoLines = append(logoLines, []string{logoColorLine, line})
 			}
-			// Replace literal \033 with the actual ANSI escape character
-			logoLines = append(logoLines, []string{logoColorLine, fields[textField]})
 		}
 		lenLogoLine := len(logoLines[0][1])
 
