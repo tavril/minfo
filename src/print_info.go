@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/jwalton/go-supportscolor"
 )
 
 // helper to create a line of information
@@ -45,7 +47,7 @@ func padLogoLines(logoLines *[]string) {
 func printInfo(hostInfo *info) error {
 	var output strings.Builder
 
-	if strings.Contains(os.Getenv("TERM"), "256") {
+	if supportscolor.Stdout().Has256 || supportscolor.Stderr().Has16m {
 		//colorRed = "\033[38;5;160m"
 		//colorGreen = "\033[38;5;028m"
 		//colorYellow = "\033[38;5;220m"
@@ -216,9 +218,9 @@ func printInfo(hostInfo *info) error {
 		// followed by the text to be displayed. --> In that case the fields
 		// are separated by a colon.
 		var logoLines [][]string
-		var colorField int // (first field = 256 colors, second field = 16 colors)
-		if !strings.Contains(os.Getenv("TERM"), "256") && !strings.Contains(os.Getenv("TERM"), "ghostty") {
-			colorField = 1
+		colorField := 1 // (first field = 256 colors, second field = 16 colors)
+		if supportscolor.Stdout().Has256 || supportscolor.Stderr().Has16m {
+			colorField = 0
 		}
 
 		data, err := os.ReadFile(*config.Logo)
