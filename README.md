@@ -62,7 +62,7 @@ If the configuration file does not exist, minfo will use the default values.
 
 ### Cache file
 
-There is a cache file (by default `~/.minfo-cache.json`) which caches some information
+There is a cache file (by default `~/.cache/minfo/static.json`) which caches some information
 that are unlikely to change: computer model, serial number, CPU, GPU, memory.
 Location of the cache file can be customized in the configuration file.
 

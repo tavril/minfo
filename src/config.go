@@ -30,7 +30,7 @@ type WeatherConfig struct {
 var config = &Config{}
 
 /* ---------- Default Configuration ---------- */
-var defaultCacheFilePath = fmt.Sprintf("%s/.minfo-cache.json", envHome)
+var defaultCacheFilePath = fmt.Sprintf("%s/.cache/minfo/static.json", envHome)
 var defaultItems = []string{
 	"user",
 	"hostname",

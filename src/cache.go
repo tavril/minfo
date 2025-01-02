@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"path/filepath"
 )
 
 var errEmptyCache = errors.New("cache file is empty")
@@ -25,6 +26,10 @@ func readCacheFile(cacheFilePath string) (err error) {
 }
 
 func writeCacheFile(cacheFilePath string, hostInfo *info) (err error) {
+	dirPath := filepath.Dir(cacheFilePath)
+	if err = ensureDirExists(dirPath); err != nil {
+		return
+	}
 	var jsonData []byte
 	if jsonData, err = json.MarshalIndent((*hostInfo).cachedInfo, "", "  "); err != nil {
 		return

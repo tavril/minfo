@@ -106,6 +106,18 @@ func uniqueStrings(input []string) []string {
 	return result
 }
 
+func ensureDirExists(dirPath string) error {
+	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+		err := os.MkdirAll(dirPath, os.ModePerm)
+		if err != nil {
+			return fmt.Errorf("failed to create directory: %v", err)
+		}
+	} else if err != nil {
+		return fmt.Errorf("failed to check directory: %v", err)
+	}
+	return nil
+}
+
 func windArrow(deg int) string {
 	arrows := []string{"↓", "↙", "←", "↖", "↑", "↗", "→", "↘"}
 	return arrows[((deg+22)%360)/45]
