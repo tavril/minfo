@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // runCommand runs a command and returns the output
@@ -116,6 +117,17 @@ func ensureDirExists(dirPath string) error {
 		return fmt.Errorf("failed to check directory: %v", err)
 	}
 	return nil
+}
+
+// isFileOlderThan checks if a file's modification time is older than the given duration.
+func isFileOlderThan(filePath string, duration time.Duration) (bool, error) {
+	info, err := os.Stat(filePath)
+	if err != nil {
+		return false, fmt.Errorf("failed to get file info: %v", err)
+	}
+	modTime := info.ModTime()
+
+	return time.Since(modTime) > duration, nil
 }
 
 func windArrow(deg int) string {

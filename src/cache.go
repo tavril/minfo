@@ -8,6 +8,7 @@ import (
 )
 
 var errEmptyCache = errors.New("cache file is empty")
+var errInvalidWeatherCache = errors.New("invalid weather cache")
 
 func readCacheFile(cacheFilePath string) (err error) {
 	var fileInfo os.FileInfo
@@ -31,7 +32,7 @@ func writeCacheFile(cacheFilePath string, hostInfo *info) (err error) {
 		return
 	}
 	var jsonData []byte
-	if jsonData, err = json.MarshalIndent((*hostInfo).cachedInfo, "", "  "); err != nil {
+	if jsonData, err = json.MarshalIndent(*hostInfo, "", "  "); err != nil {
 		return
 	}
 	err = os.WriteFile(cacheFilePath, jsonData, 0644)

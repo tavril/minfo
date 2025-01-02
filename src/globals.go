@@ -5,17 +5,20 @@ import (
 	"os"
 	"path"
 	"runtime"
+	"time"
 )
 
 var (
-	appName           = path.Base(os.Args[0])
-	arch              = runtime.GOARCH
-	defaultConfigFile = fmt.Sprintf("%s/.config/%s/config.yaml", os.Getenv("HOME"), appName)
-	envHome           = os.Getenv("HOME")
-	hostInfo          = info{}
-	GitCommit         string
-	GitVersion        string
-	colorNormal       = "\033[0m"
+	appName              = path.Base(os.Args[0])
+	arch                 = runtime.GOARCH
+	defaultConfigFile    = fmt.Sprintf("%s/.config/%s/config.yaml", os.Getenv("HOME"), appName)
+	weatherCacheFile     = fmt.Sprintf("%s/.cache/%s/weather.json", os.Getenv("HOME"), appName)
+	weatherCacheDuration = 2 * time.Minute
+	envHome              = os.Getenv("HOME")
+	hostInfo             = info{}
+	GitCommit            string
+	GitVersion           string
+	colorNormal          = "\033[0m"
 	// The colors will be defined depending on the terminal type (256 or 16 colors)
 	colorRed    string
 	colorGreen  string

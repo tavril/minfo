@@ -61,6 +61,7 @@ func main() {
 
 	// Track which spDataType we will need to fetch from system_profiler
 	spDataTypes := map[string]bool{}
+	writeWeatherCache := true // Do we need to write the weather cache file?
 
 	for _, requestedItem := range config.Items {
 		item := availableItems[requestedItem]
@@ -84,8 +85,18 @@ func main() {
 
 		// other data, each fetched by its own function.
 		if item.Func != nil {
-			// No need to deal with cache, as we only cache (some) system_profiler data.
-			tasks = append(tasks, func() { (*item.Func).Func(&hostInfo) })
+			// We have a cache for the weather (default: 15 min)
+			if item.Title == "Weather" {
+				if isOlder, err := isFileOlderThan(weatherCacheFile, weatherCacheDuration); err != nil || isOlder {
+					tasks = append(tasks, func() { (*item.Func).Func(&hostInfo) })
+				} else if err := readCacheFile(weatherCacheFile); err != nil || hostInfo.Weather == nil {
+					tasks = append(tasks, func() { (*item.Func).Func(&hostInfo) })
+				} else {
+					writeWeatherCache = false
+				}
+			} else {
+				tasks = append(tasks, func() { (*item.Func).Func(&hostInfo) })
+			}
 		}
 	}
 
@@ -113,6 +124,13 @@ func main() {
 
 	if spErr != nil {
 		log.Fatalf("Error fetching system profiler: %v", spErr)
+	}
+
+	if writeWeatherCache {
+		tmpInfo := info{Weather: hostInfo.Weather}
+		if err := writeCacheFile(weatherCacheFile, &tmpInfo); err != nil {
+			log.Fatalf("Error writing weather cache: %v", err)
+		}
 	}
 
 	/* ---------- Display information ---------- */

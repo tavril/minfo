@@ -116,6 +116,11 @@ You can add the following optional parameters:
   - metric: Celsius and km/h
   - imperial: Fahrenheit and mp/h
 
+#### Weather cache file
+
+The weather informaiton is cached for 15 minutes, so that we don't do too much requests on open-meteo.com.
+The cache file is located in `~/.cache/minfo/weather.json`.
+
 ## Examples
 
 ```text

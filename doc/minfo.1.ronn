@@ -81,6 +81,11 @@ Location of the cache file can be customized in the configuration file.
 
 `--refresh=true` and `--cache=false` are mutualy exclusive.
 
+## Weather cache file
+If you request the "weather" item, then we cache the information for 15 minutes, so
+that we don't do too much requests on open-meteo.com.
+The cache file is located in `~/.cache/minfo/weather.json`.
+
 ## Logo
 
 You can decide not to display the Apple logo with command line parameter `--display-logo=false`.

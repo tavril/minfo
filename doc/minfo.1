@@ -60,6 +60,8 @@ You can ask the tool to refresh the cache with command line parameter \fB\-\-ref
 .IP "" 0
 .P
 \fB\-\-refresh=true\fR and \fB\-\-cache=false\fR are mutualy exclusive\.
+.SH "Weather cache file"
+If you request the "weather" item, then we cache the information for 15 minutes, so that we don't do too much requests on open\-meteo\.com\. The cache file is located in \fB~/\.cache/minfo/weather\.json\fR\.
 .SH "Logo"
 You can decide not to display the Apple logo with command line parameter \fB\-\-display\-logo=false\fR\. Logo is displayed in color, and support 16/256colors terminals\.
 .P
