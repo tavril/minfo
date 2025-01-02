@@ -2,7 +2,7 @@
 
 ## What is minfo ?
 
-`minfo` is a tool which displays informatino about your computer/OS.
+`minfo` is a tool which displays information about your computer/OS.
 It only works on macOS.
 
 Information is displayed in plain text, with an ASCII art logo.
@@ -103,7 +103,7 @@ weather:
   location_country_en: "Switzerland"
 ```
 
-Note: if you request the "weather" item but don't provide the location, the default location is *Geneva, Switzerland*.
+Note: if you request the "weather" item but don't provide the location, the default location is _Geneva, Switzerland_.
 
 You can add the following optional parameters:
 
@@ -143,7 +143,7 @@ $ minfo
       ######################     Public IP      178.195.10.11 (Switzerland)
         #######    #######       Uptime         1 days, 19 hours
                                  Date/Time      Sun, 22 Dec 2024 16:58:33 CET
-````
+```
 
 ```text
 $ minfo -j
