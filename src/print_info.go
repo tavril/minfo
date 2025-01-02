@@ -44,7 +44,7 @@ func padLogoLines(logoLines *[]string) int {
 	for i, line := range *logoLines {
 		lenLine := utf8.RuneCountInString(reANSI.ReplaceAllString(line, ""))
 		if lenLine < maxLen {
-			(*logoLines)[i] = fmt.Sprintf("%-*s", (maxLen-lenLine)+len(line), line)
+			(*logoLines)[i] = fmt.Sprintf("%s%-*s", line, maxLen-lenLine, " ")
 		}
 	}
 	return maxLen
