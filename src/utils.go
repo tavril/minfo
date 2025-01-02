@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -71,6 +73,24 @@ func min(a, b int) int {
 	return b
 }
 
+// This function rounds a float to the nearest half.
+// (Using this to display temperatures in Celsius to nearest 0.5)
+func roundToNearestHalf(x float64) float64 {
+	return math.Round(x*2) / 2
+}
+
+// FormatFloat intelligently formats float64 to display one decimal if needed
+func formatFloat(x float64) string {
+	// Format with one decimal place
+	s := fmt.Sprintf("%.1f", x)
+
+	// Remove unnecessary trailing ".0"
+	if s[len(s)-2:] == ".0" {
+		return strconv.FormatFloat(x, 'f', 0, 64)
+	}
+	return s
+}
+
 // This functions returns only the unique strings in a slice of strings
 func uniqueStrings(input []string) []string {
 	seen := make(map[string]bool)
@@ -84,4 +104,9 @@ func uniqueStrings(input []string) []string {
 	}
 
 	return result
+}
+
+func windArrow(deg int) string {
+	arrows := []string{"↓", "↙", "←", "↖", "↑", "↗", "→", "↘"}
+	return arrows[((deg+22)%360)/45]
 }

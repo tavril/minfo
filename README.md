@@ -87,11 +87,34 @@ In the configuration file, you can define
 
 - Location of the cache file,
 - Items to be displayed.
+- Weather configuration
 
 Choose the list of items to be displayed among the items listed when running `minfo --items`.
 
 By default, the tool will look for a configuration file located at `~/.config/minfo.yml`,
 but you can specify another location with command line parameter `--config <path_to_file>`.
+
+### Weather
+
+You need to provide as least the city and country (in english) in the configuration file.
+
+```yaml
+weather:
+  location_name_en: "Geneva"
+  location_country_en: "Switzerland"
+```
+
+Note: if you request the "weather" item but don't provide the location, the default location is *Geneva, Switzerland*.
+
+You can add the following optional parameters:
+
+- `location_state_en`: in case several cities have the same name, you can provide the state (in english).
+  - Correspond to a state (US), a canton (CH), a region (FR), etc...
+- `lang`: language to use for the current weather description.
+  - Currently only "en" (default) or "fr" (french)
+- `units`: unit to use for temperature and wind speed
+  - metric: Celsius and km/h
+  - imperial: Fahrenheit and mp/h
 
 ## Examples
 
@@ -190,4 +213,5 @@ $ minfo -j
 
 ## TODO
 
+- Weather: cache information.
 - Make it work on x86_64

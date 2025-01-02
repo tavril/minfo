@@ -207,6 +207,28 @@ func printInfo(hostInfo *info) error {
 			infoLines = append(infoLines, createInfoLine(requestedItem, hostInfo.Uptime))
 		case "datetime":
 			infoLines = append(infoLines, createInfoLine(requestedItem, hostInfo.Datetime))
+		case "weather":
+			infoLines = append(infoLines, createInfoLine(requestedItem,
+				fmt.Sprintf("%s, %s: %s",
+					hostInfo.Weather.LocationName,
+					hostInfo.Weather.LocationCountryCode,
+					hostInfo.Weather.CurrentWeather,
+				),
+			))
+			tmp := createInfoLine(requestedItem,
+				fmt.Sprintf(
+					"%s (%s) %s | %s %.0f (%.0f) %s",
+					formatFloat(roundToNearestHalf(hostInfo.Weather.Temperature)),
+					formatFloat(roundToNearestHalf(hostInfo.Weather.FeelsLike)),
+					hostInfo.Weather.TempUnit,
+					windArrow(hostInfo.Weather.WindDirection),
+					hostInfo.Weather.WindSpeed,
+					hostInfo.Weather.WindGusts,
+					hostInfo.Weather.WindUnit,
+				),
+			)
+			tmp[1] = "Temp. | Wind"
+			infoLines = append(infoLines, tmp)
 		}
 	}
 

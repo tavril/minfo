@@ -326,6 +326,124 @@ func fetchTermProgram(hostInfo *info) {
 	return
 }
 
+func fetchWeatherOpenMeteo(hostInfo *info) {
+	hostInfo.Weather = &weather{}
+
+	var latitude, longitude *float64
+	var countryCode string
+	latitude, longitude, countryCode = fetchCoordinatesFromName(
+		config.Weather.LocationNameEn,
+		config.Weather.LocationStateEn,
+		config.Weather.LocationCountryEn,
+	)
+	if latitude == nil || longitude == nil {
+		return
+	}
+
+	// Define the API URL
+	url := fmt.Sprintf(
+		"https://api.open-meteo.com/v1/forecast?latitude=%f&longitude=%f&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m",
+		*latitude,
+		*longitude,
+	)
+	if config.Weather.Units == "imperial" {
+		url += "&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch"
+	}
+
+	// Make the HTTP GET request
+	response, err := http.Get(url)
+	if err != nil {
+		return
+	}
+	defer response.Body.Close()
+
+	// Check for successful response
+	if response.StatusCode != http.StatusOK {
+		return
+	}
+
+	// Read the response body
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return
+	}
+
+	// Parse the JSON response
+	var openMeteo openMeteo
+	if err = json.Unmarshal(body, &openMeteo); err != nil {
+		fmt.Printf("Error fetching weather (unmarshall): %v\n", err)
+		return
+	}
+
+	hostInfo.Weather.TempUnit = openMeteo.CurrentUnits.Temperature2m
+	hostInfo.Weather.WindUnit = openMeteo.CurrentUnits.WindSpeed10m
+	hostInfo.Weather.Temperature = openMeteo.Current.Temperature2m
+	hostInfo.Weather.FeelsLike = openMeteo.Current.ApparentTemperature
+	hostInfo.Weather.WindSpeed = openMeteo.Current.WindSpeed10m
+	hostInfo.Weather.WindGusts = openMeteo.Current.WindGusts10m
+	hostInfo.Weather.WindDirection = openMeteo.Current.WindDirection10m
+	hostInfo.Weather.CurrentWeather = wmoCodesDesc[openMeteo.Current.WeatherCode][config.Weather.Lang]
+	hostInfo.Weather.LocationCountryCode = countryCode
+	hostInfo.Weather.LocationName = config.Weather.LocationNameEn
+
+	return
+}
+
+func fetchCoordinatesFromName(locationName, locationState, locationCountry string) (latitude *float64, longitude *float64, countryCode string) {
+	// Define the API URL
+	url := fmt.Sprintf("https://geocoding-api.open-meteo.com/v1/search?name=%s", locationName)
+
+	// Make the HTTP GET request
+	response, err := http.Get(url)
+	if err != nil {
+		return
+	}
+	defer response.Body.Close()
+
+	// Check for successful response
+	if response.StatusCode != http.StatusOK {
+		return
+	}
+
+	// Read the response body
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return
+	}
+
+	// Parse the JSON response
+	var geo openMeteoGeo
+	if err = json.Unmarshal(body, &geo); err != nil {
+		return
+	}
+
+	if len(geo.Results) == 0 {
+		return
+	}
+
+	upLocationName := strings.ToUpper(locationName)
+	upLocationState := ""
+	if locationState != "" {
+		upLocationState = strings.ToUpper(locationState)
+	}
+	upLocationCountry := strings.ToUpper(locationCountry)
+	for _, result := range geo.Results {
+		if strings.ToUpper(result.Name) == upLocationName &&
+			strings.ToUpper(result.Country) == upLocationCountry &&
+			((upLocationState != "" && strings.ToUpper(result.Admin1) == upLocationState) || upLocationState == "") {
+
+			latitude = new(float64)
+			longitude = new(float64)
+			*latitude = result.Latitude
+			*longitude = result.Longitude
+			countryCode = result.CountryCode
+			return
+		}
+	}
+	fmt.Printf("in fetchCoordinatedFromName: Not found\n")
+	return
+}
+
 // Fetch the public IP address (and its country name)
 func fetchPublicIp(hostInfo *info) {
 	hostInfo.PublicIp = &publicIpInfo{IP: "Unknown"}

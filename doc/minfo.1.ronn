@@ -110,6 +110,36 @@ or
 
 `      ########   ############`
 
+## Weather
+The current weather is fetched at open-meteo.com.
+The following information is provided:
+- Weather description
+- Temperature
+- Feels like temperature
+- Wind direction (provided as a small arrow character)
+- Wind speed
+- Wind gusts speed
+
+The weather information uses 2 lines of information (1 for location + weather description,
+and the other one for temperature/wind).
+
+In the configuration file you need to provide as least the city and country (in english)
+
+    weather:
+      location_name_en: "Geneva"
+      location_country_en: "Switzerland"
+
+Note: if you request the "weather" item but don't provide the location, the default
+location is Geneva, Switzerland.
+
+You can add the following optional parameters
+- `location_state_en`: in case several cities have the same name, you can provide the state (in english).
+- `lang`: language to use for the current weather description.
+  - Currently only "en" (default) or "fr" (french)
+- `units`: unit to use for temperature and wind speed
+  - metric: Celsius and km/h
+  - imperial: Fahrenheit and mp/h
+
 ## JSON output
 
 You can output JSON instead of text by using command line parameter `--json`.
@@ -252,4 +282,5 @@ Display available items
       terminal
       uptime
       user
+      weather
     

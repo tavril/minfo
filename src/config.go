@@ -11,11 +11,20 @@ import (
 
 // This struct represents the configuration file
 type Config struct {
-	CacheFilePath *string  `yaml:"cache_file,omitempty"`
-	DisplayLogo   *bool    `yaml:"display_logo,omitempty"`
-	Logo          *string  `yaml:"logo_file,omitempty"`
-	Cache         *bool    `yaml:"cache,omitempty"`
-	Items         []string `yaml:"items,omitempty"`
+	CacheFilePath *string        `yaml:"cache_file,omitempty"`
+	DisplayLogo   *bool          `yaml:"display_logo,omitempty"`
+	Logo          *string        `yaml:"logo_file,omitempty"`
+	Cache         *bool          `yaml:"cache,omitempty"`
+	Items         []string       `yaml:"items,omitempty"`
+	Weather       *WeatherConfig `yaml:"weather,omitempty"`
+}
+
+type WeatherConfig struct {
+	LocationNameEn    string `yaml:"location_name_en,omitempty"`
+	LocationStateEn   string `yaml:"location_state_en,omitempty"`
+	LocationCountryEn string `yaml:"location_country_en,omitempty"`
+	Units             string `yaml:"units,omitempty"`
+	Lang              string `yaml:"lang,omitempty"`
 }
 
 var config = &Config{}
@@ -81,6 +90,10 @@ var (
 	termProgramNamedFunc = NamedFunc{
 		Id:   "fetchTermProgram",
 		Func: fetchTermProgram,
+	}
+	weatherNamedFunc = NamedFunc{
+		Id:   "fetchWeatherOpenMeteo",
+		Func: fetchWeatherOpenMeteo,
 	}
 )
 
@@ -181,6 +194,10 @@ var availableItems = map[string]item{
 		Title: "Terminal",
 		Func:  &termProgramNamedFunc,
 	},
+	"weather": {
+		Title: "Weather",
+		Func:  &weatherNamedFunc,
+	},
 }
 
 func getDefaultLogoFilePath() (defaultLogoFilePath *string) {
@@ -202,6 +219,13 @@ func loadAndCheckConfig(configFilePath string) (err error) {
 			Logo:          getDefaultLogoFilePath(),
 			Cache:         nil,
 			Items:         defaultItems,
+			Weather: &WeatherConfig{
+				LocationNameEn:    "Geneva",
+				LocationStateEn:   "Geneva",
+				LocationCountryEn: "Switzerland",
+				Units:             "metric",
+				Lang:              "en",
+			},
 		}
 		return nil
 	}
@@ -236,6 +260,32 @@ func loadAndCheckConfig(configFilePath string) (err error) {
 	if config.Cache == nil {
 		config.Cache = new(bool)
 		*config.Cache = true // This default value might be overridden by the command line
+	}
+	if config.Weather == nil {
+		config.Weather = &WeatherConfig{
+			LocationNameEn:    "Geneva",
+			LocationStateEn:   "Geneva",
+			LocationCountryEn: "Switzerland",
+			Units:             "metric",
+			Lang:              "en",
+		}
+	} else {
+		if config.Weather.Units == "" {
+			config.Weather.Units = "metric"
+		} else if config.Weather.Units != "metric" && config.Weather.Units != "imperial" {
+			return fmt.Errorf("invalid weather units: %s", config.Weather.Units)
+		}
+		if config.Weather.Lang == "" {
+			config.Weather.Lang = "en"
+		} else if config.Weather.Lang != "en" && config.Weather.Lang != "fr" {
+			return fmt.Errorf("invalid language: %s", config.Weather.Lang)
+		}
+		if config.Weather.LocationNameEn != "" {
+			if config.Weather.LocationCountryEn == "" {
+				return fmt.Errorf("for weather, you need to provide a country")
+			}
+		}
+
 	}
 
 	if config.CacheFilePath != nil {

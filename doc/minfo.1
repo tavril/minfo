@@ -1,6 +1,6 @@
 .\" generated with Ronn-NG/v0.10.1
 .\" http://github.com/apjanke/ronn-ng/tree/0.10.1
-.TH "MINFO" "1" "December 2024" ""
+.TH "MINFO" "1" "January 2025" ""
 .SH "NAME"
 \fBminfo\fR \- display information about your Apple computer
 .SH "SYNOPSIS"
@@ -83,6 +83,53 @@ If you installed \fBminfo\fR from homebrew, you'll have sample logos at \fB$HOME
 or
 .P
 ` ######## ############`
+.SH "Weather"
+The current weather is fetched at open\-meteo\.com\. The following information is provided:
+.IP "\(bu" 4
+Weather description
+.IP "\(bu" 4
+Temperature
+.IP "\(bu" 4
+Feels like temperature
+.IP "\(bu" 4
+Wind direction (provided as a small arrow character)
+.IP "\(bu" 4
+Wind speed
+.IP "\(bu" 4
+Wind gusts speed
+.IP "" 0
+.P
+The weather information uses 2 lines of information (1 for location + weather description, and the other one for temperature/wind)\.
+.P
+In the configuration file you need to provide as least the city and country (in english)
+.IP "" 4
+.nf
+weather:
+  location_name_en: "Geneva"
+  location_country_en: "Switzerland"
+.fi
+.IP "" 0
+.P
+Note: if you request the "weather" item but don't provide the location, the default location is Geneva, Switzerland\.
+.P
+You can add the following optional parameters
+.IP "\(bu" 4
+\fBlocation_state_en\fR: in case several cities have the same name, you can provide the state (in english)\.
+.IP "\(bu" 4
+\fBlang\fR: language to use for the current weather description\.
+.IP "\(bu" 4
+Currently only "en" (default) or "fr" (french)
+.IP "" 0
+
+.IP "\(bu" 4
+\fBunits\fR: unit to use for temperature and wind speed
+.IP "\(bu" 4
+metric: Celsius and km/h
+.IP "\(bu" 4
+imperial: Fahrenheit and mp/h
+.IP "" 0
+
+.IP "" 0
 .SH "JSON output"
 You can output JSON instead of text by using command line parameter \fB\-\-json\fR\.
 .SH "Configuration file"
@@ -235,6 +282,7 @@ Available information to choose from:
   terminal
   uptime
   user
+  weather
 .fi
 .IP "" 0
 

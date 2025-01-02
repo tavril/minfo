@@ -110,6 +110,22 @@ type info struct {
 	Uptime          string        `json:"uptime,omitempty"`
 	Datetime        string        `json:"datetime,omitempty"`
 	PublicIp        *publicIpInfo `json:"public_ip,omitempty"`
+	Weather         *weather      `json:"weather,omitempty"`
+}
+
+type weather struct {
+	LocationName        string  `json:"location_name,omitempty"`
+	LocationState       string  `json:"location_state,omitempty"`
+	LocationCountryCode string  `json:"location_country_code,omitempty"`
+	LocationCountry     string  `json:"location_country,omitempty"`
+	CurrentWeather      string  `json:"current_weather,omitempty"`
+	Temperature         float64 `json:"temperature,omitempty"`
+	FeelsLike           float64 `json:"feels_like,omitempty"`
+	TempUnit            string  `json:"temp_unit,omitempty"`
+	WindSpeed           float64 `json:"wind_speed,omitempty"`
+	WindGusts           float64 `json:"wind_gusts,omitempty"`
+	WindUnit            string  `json:"wind_unit,omitempty"`
+	WindDirection       int     `json:"wind_direction,omitempty"`
 }
 
 /* ---------- Structs for system_profiler parsing ---------- */
@@ -170,4 +186,40 @@ type systemProfilerInfo struct {
 			SmartStatus string `json:"smart_status"`
 		} `json:"physical_drive"`
 	} `json:"SPStorageDataType"`
+}
+
+type openMeteo struct {
+	Latitude     float64 `json:"latitude"`
+	Longitude    float64 `json:"longitude"`
+	Elevation    float64 `json:"elevation"`
+	CurrentUnits struct {
+		Time             string `json:"time"`
+		Interval         string `json:"interval"`
+		Temperature2m    string `json:"temperature_2m"`
+		WeatherCode      string `json:"weather_code"`
+		WindSpeed10m     string `json:"wind_speed_10m"`
+		WindDirection10m string `json:"wind_direction_10m"`
+		WindGusts10m     string `json:"wind_gusts_10m"`
+	} `json:"current_units"`
+	Current struct {
+		Time                string  `json:"time"`
+		Interval            int     `json:"interval"`
+		Temperature2m       float64 `json:"temperature_2m"`
+		ApparentTemperature float64 `json:"apparent_temperature"`
+		WeatherCode         int     `json:"weather_code"`
+		WindSpeed10m        float64 `json:"wind_speed_10m"`
+		WindDirection10m    int     `json:"wind_direction_10m"`
+		WindGusts10m        float64 `json:"wind_gusts_10m"`
+	} `json:"current"`
+}
+
+type openMeteoGeo struct {
+	Results []struct {
+		Latitude    float64 `json:"latitude"`
+		Longitude   float64 `json:"longitude"`
+		Name        string  `json:"name"`
+		CountryCode string  `json:"country_code"`
+		Country     string  `json:"country"`
+		Admin1      string  `json:"admin1"` // State (US), Canton (CH), Region (FR), etc...
+	} `json:"results"`
 }
