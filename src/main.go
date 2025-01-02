@@ -85,16 +85,24 @@ func main() {
 
 		// other data, each fetched by its own function.
 		if item.Func != nil {
-			// We have a cache for the weather (default: 15 min)
+			var fetch bool
 			if item.Title == "Weather" {
-				if isOlder, err := isFileOlderThan(weatherCacheFile, weatherCacheDuration); err != nil || isOlder {
-					tasks = append(tasks, func() { (*item.Func).Func(&hostInfo) })
+				// We have a cache for the weather (default: 15 min)
+				if cmdLine.RefreshCache {
+					fetch = true // Specifically requested to refresh the cache
+				} else if isOlder, err := isFileOlderThan(weatherCacheFile, weatherCacheDuration); err != nil || isOlder {
+					fetch = true // either file > 15 min, or error.
 				} else if err := readCacheFile(weatherCacheFile); err != nil || hostInfo.Weather == nil {
-					tasks = append(tasks, func() { (*item.Func).Func(&hostInfo) })
+					fetch = true // file exists but empty or error
 				} else {
-					writeWeatherCache = false
+					writeWeatherCache = false // for later, no need to refresh the cache
 				}
 			} else {
+				// for all other items, just fetch the data
+				fetch = true
+			}
+
+			if fetch {
 				tasks = append(tasks, func() { (*item.Func).Func(&hostInfo) })
 			}
 		}

@@ -114,6 +114,8 @@ type info struct {
 }
 
 type weather struct {
+	Latitude            float64 `json:"latitude,omitempty"`
+	Longitude           float64 `json:"longitude,omitempty"`
 	LocationName        string  `json:"location_name,omitempty"`
 	LocationState       string  `json:"location_state,omitempty"`
 	LocationCountryCode string  `json:"location_country_code,omitempty"`

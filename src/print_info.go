@@ -208,10 +208,16 @@ func printInfo(hostInfo *info) error {
 		case "datetime":
 			infoLines = append(infoLines, createInfoLine(requestedItem, hostInfo.Datetime))
 		case "weather":
+			var location string
+
+			if hostInfo.Weather.LocationName != "" {
+				location = fmt.Sprintf("%s, %s", hostInfo.Weather.LocationName, hostInfo.Weather.LocationCountryCode)
+			} else {
+				location = fmt.Sprintf("(%f, %f)", hostInfo.Weather.Latitude, hostInfo.Weather.Longitude)
+			}
 			infoLines = append(infoLines, createInfoLine(requestedItem,
-				fmt.Sprintf("%s, %s: %s",
-					hostInfo.Weather.LocationName,
-					hostInfo.Weather.LocationCountryCode,
+				fmt.Sprintf("%s: %s",
+					location,
 					hostInfo.Weather.CurrentWeather,
 				),
 			))

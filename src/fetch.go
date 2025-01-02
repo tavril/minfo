@@ -331,13 +331,18 @@ func fetchWeatherOpenMeteo(hostInfo *info) {
 
 	var latitude, longitude *float64
 	var countryCode string
-	latitude, longitude, countryCode = fetchCoordinatesFromName(
-		config.Weather.LocationNameEn,
-		config.Weather.LocationStateEn,
-		config.Weather.LocationCountryEn,
-	)
-	if latitude == nil || longitude == nil {
-		return
+	if config.Weather.LocationNameEn != "" {
+		latitude, longitude, countryCode = fetchCoordinatesFromName(
+			config.Weather.LocationNameEn,
+			config.Weather.LocationStateEn,
+			config.Weather.LocationCountryEn,
+		)
+		if latitude == nil || longitude == nil {
+			return
+		}
+	} else {
+		latitude = config.Weather.Latitude
+		longitude = config.Weather.Longitude
 	}
 
 	// Define the API URL
@@ -385,6 +390,8 @@ func fetchWeatherOpenMeteo(hostInfo *info) {
 	hostInfo.Weather.CurrentWeather = wmoCodesDesc[openMeteo.Current.WeatherCode][config.Weather.Lang]
 	hostInfo.Weather.LocationCountryCode = countryCode
 	hostInfo.Weather.LocationName = config.Weather.LocationNameEn
+	hostInfo.Weather.Latitude = *latitude
+	hostInfo.Weather.Longitude = *latitude
 
 	return
 }

@@ -20,11 +20,13 @@ type Config struct {
 }
 
 type WeatherConfig struct {
-	LocationNameEn    string `yaml:"location_name_en,omitempty"`
-	LocationStateEn   string `yaml:"location_state_en,omitempty"`
-	LocationCountryEn string `yaml:"location_country_en,omitempty"`
-	Units             string `yaml:"units,omitempty"`
-	Lang              string `yaml:"lang,omitempty"`
+	Latitude          *float64 `yaml:"latitude,omitempty"`
+	Longitude         *float64 `yaml:"longitude,omitempty"`
+	LocationNameEn    string   `yaml:"location_name_en,omitempty"`
+	LocationStateEn   string   `yaml:"location_state_en,omitempty"`
+	LocationCountryEn string   `yaml:"location_country_en,omitempty"`
+	Units             string   `yaml:"units,omitempty"`
+	Lang              string   `yaml:"lang,omitempty"`
 }
 
 var config = &Config{}
@@ -284,6 +286,8 @@ func loadAndCheckConfig(configFilePath string) (err error) {
 			if config.Weather.LocationCountryEn == "" {
 				return fmt.Errorf("for weather, you need to provide a country")
 			}
+		} else if config.Weather.Latitude == nil || config.Weather.Longitude == nil {
+			return fmt.Errorf("for weather, you need to provide either a location name or latitude and longitude")
 		}
 
 	}
