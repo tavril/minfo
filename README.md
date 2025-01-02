@@ -74,7 +74,6 @@ Location of the cache file can be customized in the configuration file.
 ### Logo
 
 You can decide not to display the Apple logo with command line parameter `--logo=false`.
-Logo is displayed in color, and support 16/256colors terminals.
 
 ### JSON output
 
@@ -141,7 +140,7 @@ $ minfo
   #############################  Display #1     3456 x 2234 | 1728 x 1117 @ 120 Hz
    ############################  Terminal       iTerm.app
      ########################    Software       65 Apps | 227 Formulae | 37 Casks
-      ######################     Public IP      178.195.102.237 (Switzerland)
+      ######################     Public IP      178.195.10.11 (Switzerland)
         #######    #######       Uptime         1 days, 19 hours
                                  Date/Time      Sun, 22 Dec 2024 16:58:33 CET
 ````
@@ -210,7 +209,7 @@ $ minfo -j
   "uptime": "1 days, 19 hours",
   "datetime": "Sun, 22 Dec 2024 16:58:35 CET",
   "public_ip": {
-    "query": "178.195.102.237",
+    "query": "178.195.10.11",
     "country": "Switzerland"
   }
 }

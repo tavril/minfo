@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"regexp"
 	"runtime"
 	"time"
 )
@@ -14,19 +15,13 @@ var (
 	defaultConfigFile    = fmt.Sprintf("%s/.config/%s/config.yaml", os.Getenv("HOME"), appName)
 	weatherCacheFile     = fmt.Sprintf("%s/.cache/%s/weather.json", os.Getenv("HOME"), appName)
 	weatherCacheDuration = 2 * time.Minute
+	reANSI               = regexp.MustCompile(`\\033\[[0-?]*[ -/]*[@-~]`)
 	envHome              = os.Getenv("HOME")
 	hostInfo             = info{}
 	GitCommit            string
 	GitVersion           string
 	colorNormal          = "\033[0m"
-	// The colors will be defined depending on the terminal type (256 or 16 colors)
-	colorRed    string
-	colorGreen  string
-	colorYellow string
-	colorBlue   string
-	colorPurple string
-	colorCyan   string
-	colorOrange string
+	colorCyan            string // The colors will be defined depending on the terminal type (256 or 16 colors)
 )
 
 var wmoCodesDesc = map[int]map[string]string{

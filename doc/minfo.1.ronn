@@ -89,31 +89,14 @@ The cache file is located in `~/.cache/minfo/weather.json`.
 ## Logo
 
 You can decide not to display the Apple logo with command line parameter `--display-logo=false`.
-Logo is displayed in color, and support 16/256colors terminals.
 
-You can provide your own ASCII art logo.
-The format for the file is the following:
-`<ansi_code_color256> <ansi_code_color16> text`
-
-or just text (but if you provide colors, you need to provide both 256/16 colors).
-
-with:
-- <ansi_code_color256> being the ANSI color for 256 colors terminal
-- <ansi_code_color16> being the ANSI color for 16 colors terminal
+You can provide your own ASCII art logo, with or without ANSI colors codes
 
 Note that empty lines and lines starting with `//` are ignored.
 
 If you installed `minfo` from homebrew, you'll have sample logos at
-`$HOMEBREW_PREFIX/share/minfo/`. Default logo will be `$HOMEBREW_PREFIX/share/minfo/apple`
-or `$HOME/.config/minfo/logo`.
-
-### Example (single line):
-
-`\033[38;5;028m \033[00;32m       ########   ############`
-
-or
-
-`      ########   ############`
+`$HOMEBREW_PREFIX/share/minfo/`. Default logo will be `$HOMEBREW_PREFIX/share/minfo/apple-256colors` or
+`$HOMEBREW_PREFIX/share/minfo/apple-16colors` or `$HOME/.config/minfo/logo`.
 
 ## Weather
 The current weather is fetched at open-meteo.com.

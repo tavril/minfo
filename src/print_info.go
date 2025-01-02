@@ -13,9 +13,9 @@ func createInfoLine(requestedItem, info string) []string {
 	return []string{colorCyan, availableItems[requestedItem].Title, colorNormal, info}
 }
 
-// each info line gets a Title and information
+// Each info line gets a Title and actual information
 // This function calculates the padding size needed to align
-// the information of all the lines.
+// the information of all the lines (i.e. calulate the longest title).
 func getPaddingSize(infoLines [][]string) int {
 	paddingSize := 0
 	for _, i := range infoLines {
@@ -26,21 +26,27 @@ func getPaddingSize(infoLines [][]string) int {
 	return paddingSize + 1
 }
 
-func padLogoLines(logoLines *[]string) {
+// This function ensures the logo is padding (i.e. suffixed) with spaces,
+// so that all the lines of the logo have the same lenght.
+// We have to deal with ANSI codes .... (not taken into account in line lenght)
+// It returns the length of the longest line of the logo.
+func padLogoLines(logoLines *[]string) int {
 	// Find the longest line
 	maxLen := 0
 	for _, line := range *logoLines {
-		if len(line) > maxLen {
-			maxLen = len(line)
+		lenLine := len(reANSI.ReplaceAllString(line, ""))
+		if lenLine > maxLen {
+			maxLen = lenLine
 		}
 	}
 
-	// Pad each line
 	for i, line := range *logoLines {
-		if len(line) < maxLen {
-			(*logoLines)[i] = fmt.Sprintf("%-*s", maxLen, line) // Left-align and pad with spaces
+		lenLine := len(reANSI.ReplaceAllString(line, ""))
+		if lenLine < maxLen {
+			(*logoLines)[i] = fmt.Sprintf("%-*s", (maxLen-lenLine)+len(line), line)
 		}
 	}
+	return maxLen
 }
 
 // Print the information in a human-readable format
@@ -48,23 +54,11 @@ func printInfo(hostInfo *info) error {
 	var output strings.Builder
 
 	if supportscolor.Stdout().Has256 || supportscolor.Stderr().Has16m {
-		//colorRed = "\033[38;5;160m"
-		//colorGreen = "\033[38;5;028m"
-		//colorYellow = "\033[38;5;220m"
-		//colorBlue = "\033[38;5;021m"
-		//colorPurple = "\033[38;5;054m"
 		colorCyan = "\033[38;5;039m"
-		//colorOrange = "\033[38;5;202m"
 	} else {
-		//colorRed = "\033[00;31m"
-		//colorGreen = "\033[00;32m"
-		//colorYellow = "\033[00;33m"
-		//colorBlue = "\033[00;34m"
-		//colorPurple = "\033[00;35m"
 		colorCyan = "\033[00;36m"
-		//colorOrange = "\033[00;91m"
 	}
-	colorReset := "\033[0m"
+	//colorReset := "\033[0m"
 
 	// Each item of infoLines is a slice of strings representing a line
 	// of information. Each line contains:
@@ -240,16 +234,7 @@ func printInfo(hostInfo *info) error {
 
 	/* ---------- Display the information ---------- */
 	if *config.DisplayLogo {
-		// The logo file consists of lines of text that will be displayed
-		// Either each line just contains the text to be displayed, or
-		// each line contains two color codes (for 256 colors terminals and 16 colors one)
-		// followed by the text to be displayed. --> In that case the fields
-		// are separated by a colon.
-		var logoLines [][]string
-		colorField := 1 // (first field = 256 colors, second field = 16 colors)
-		if supportscolor.Stdout().Has256 || supportscolor.Stderr().Has16m {
-			colorField = 0
-		}
+		var logoLines []string
 
 		data, err := os.ReadFile(*config.Logo)
 		if err != nil {
@@ -261,33 +246,19 @@ func printInfo(hostInfo *info) error {
 
 		// Let's remove empty lines and comments
 		allLines := strings.Split(string(data), "\n")
-		lines := make([]string, 0)
 		for _, line := range allLines {
 			if line == "" || strings.HasPrefix(line, "//") {
 				continue
 			}
-			lines = append(lines, line)
+			logoLines = append(logoLines, line)
 		}
 		// Padding each lines with spaces to that each lines is the same length
-		padLogoLines(&lines)
+		lenLogoLine := padLogoLines(&logoLines)
 
-		isColoredLogo := false
-		if strings.HasPrefix(lines[0], "\\") {
-			isColoredLogo = true
+		// Replace the ANSI codes properly
+		for i, line := range logoLines {
+			logoLines[i] = strings.ReplaceAll(line, `\033`, "\033")
 		}
-		var logoColorLine string
-		for _, line := range lines {
-			if isColoredLogo {
-				fields := strings.SplitN(line, " ", 3)
-				// Replace literal \033 with the actual ANSI escape character
-				logoColorLine = strings.ReplaceAll(fields[colorField], `\033`, "\033")
-				logoLines = append(logoLines, []string{logoColorLine, fields[2]})
-			} else {
-				logoColorLine = colorReset
-				logoLines = append(logoLines, []string{logoColorLine, line})
-			}
-		}
-		lenLogoLine := len(logoLines[0][1])
 
 		/* ---------- Vertically center the logo and the information ---------- */
 		// Here, we want to vertically center the display of
@@ -303,38 +274,39 @@ func printInfo(hostInfo *info) error {
 			minLines := min(lenLogoLines, lenInfoLines)
 			topPadding := (maxLines - minLines) / 2
 			bottomPadding := maxLines - minLines - topPadding
-			prependArr := make([][]string, 0)
-			appendArr := make([][]string, 0)
+			prependInfoArr := make([][]string, 0)
+			appendInfoArr := make([][]string, 0)
+			prependLogoArr := make([]string, 0)
+			appendLogoArr := make([]string, 0)
 
 			if lenLogoLines > lenInfoLines {
 				emptyLine := []string{"", "", "", ""}
 				for i := 0; i < topPadding; i++ {
-					prependArr = append(prependArr, emptyLine)
+					prependInfoArr = append(prependInfoArr, emptyLine)
 				}
-				infoLines = append(prependArr, infoLines...)
+				infoLines = append(prependInfoArr, infoLines...)
 				for i := 0; i < bottomPadding; i++ {
-					appendArr = append(appendArr, emptyLine)
+					appendInfoArr = append(appendInfoArr, emptyLine)
 				}
-				infoLines = append(infoLines, appendArr...)
+				infoLines = append(infoLines, appendInfoArr...)
 			} else {
-				emptyLine := []string{"", strings.Repeat(" ", lenLogoLine)}
+				emptyLine := strings.Repeat(" ", lenLogoLine)
 				for i := 0; i < topPadding; i++ {
-					prependArr = append(prependArr, emptyLine)
+					prependLogoArr = append(prependLogoArr, emptyLine)
 				}
-				logoLines = append(prependArr, logoLines...)
+				logoLines = append(prependLogoArr, logoLines...)
 				for i := 0; i < bottomPadding; i++ {
-					appendArr = append(appendArr, emptyLine)
+					appendLogoArr = append(appendLogoArr, emptyLine)
 				}
-				logoLines = append(logoLines, appendArr...)
+				logoLines = append(logoLines, appendLogoArr...)
 			}
 		}
 
 		/* ---------- Prepare the logo and the information ---------- */
 		dynamicPadding := getPaddingSize(infoLines)
 		for i := 0; i < maxLines; i++ {
-			output.WriteString(fmt.Sprintf("%s%s  %s%-*s%s%s\n",
-				logoLines[i][0],
-				logoLines[i][1],
+			output.WriteString(fmt.Sprintf("%s  %s%-*s%s%s\n",
+				logoLines[i],
 				infoLines[i][0],
 				dynamicPadding,
 				infoLines[i][1],

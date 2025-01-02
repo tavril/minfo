@@ -125,7 +125,7 @@ func parseCmdLineArgs(args []string) (*cmdLineParams, error) {
 		*displayLogoFlag = true
 	}
 	if !logoFlagSet {
-		logoFlag = getDefaultLogoFilePath()
+		logoFlag = nil
 	}
 	if !cacheFlagSet {
 		*cacheFlag = true

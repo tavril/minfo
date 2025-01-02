@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/jwalton/go-supportscolor"
 	"gopkg.in/yaml.v3"
 )
 
@@ -206,7 +207,11 @@ func getDefaultLogoFilePath() (defaultLogoFilePath *string) {
 	defaultLogoFilePath = new(string)
 	*defaultLogoFilePath = os.Getenv("HOMEBREW_PREFIX")
 	if *defaultLogoFilePath != "" {
-		*defaultLogoFilePath = fmt.Sprintf("%s/share/minfo/apple", *defaultLogoFilePath)
+		if supportscolor.Stdout().Has256 || supportscolor.Stderr().Has16m {
+			*defaultLogoFilePath = fmt.Sprintf("%s/share/minfo/apple-256colors", *defaultLogoFilePath)
+		} else {
+			*defaultLogoFilePath = fmt.Sprintf("%s/share/minfo/apple-16colors", *defaultLogoFilePath)
+		}
 	}
 	return
 }

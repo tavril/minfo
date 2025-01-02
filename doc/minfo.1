@@ -63,28 +63,13 @@ You can ask the tool to refresh the cache with command line parameter \fB\-\-ref
 .SH "Weather cache file"
 If you request the "weather" item, then we cache the information for 15 minutes, so that we don't do too much requests on open\-meteo\.com\. The cache file is located in \fB~/\.cache/minfo/weather\.json\fR\.
 .SH "Logo"
-You can decide not to display the Apple logo with command line parameter \fB\-\-display\-logo=false\fR\. Logo is displayed in color, and support 16/256colors terminals\.
+You can decide not to display the Apple logo with command line parameter \fB\-\-display\-logo=false\fR\.
 .P
-You can provide your own ASCII art logo\. The format for the file is the following: \fB<ansi_code_color256> <ansi_code_color16> text\fR
-.P
-or just text (but if you provide colors, you need to provide both 256/16 colors)\.
-.P
-with:
-.IP "\(bu" 4
-\fIansi_code_color256\fR being the ANSI color for 256 colors terminal
-.IP "\(bu" 4
-\fIansi_code_color16\fR being the ANSI color for 16 colors terminal
-.IP "" 0
+You can provide your own ASCII art logo, with or without ANSI colors codes
 .P
 Note that empty lines and lines starting with \fB//\fR are ignored\.
 .P
-If you installed \fBminfo\fR from homebrew, you'll have sample logos at \fB$HOMEBREW_PREFIX/share/minfo/\fR\. Default logo will be \fB$HOMEBREW_PREFIX/share/minfo/apple\fR or \fB$HOME/\.config/minfo/logo\fR\.
-.SS "Example (single line):"
-\fB\e033[38;5;028m \e033[00;32m ######## ############\fR
-.P
-or
-.P
-` ######## ############`
+If you installed \fBminfo\fR from homebrew, you'll have sample logos at \fB$HOMEBREW_PREFIX/share/minfo/\fR\. Default logo will be \fB$HOMEBREW_PREFIX/share/minfo/apple\-256colors\fR or \fB$HOMEBREW_PREFIX/share/minfo/apple\-16colors\fR or \fB$HOME/\.config/minfo/logo\fR\.
 .SH "Weather"
 The current weather is fetched at open\-meteo\.com\. The following information is provided:
 .IP "\(bu" 4
