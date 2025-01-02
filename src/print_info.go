@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/jwalton/go-supportscolor"
 )
@@ -34,14 +35,14 @@ func padLogoLines(logoLines *[]string) int {
 	// Find the longest line
 	maxLen := 0
 	for _, line := range *logoLines {
-		lenLine := len(reANSI.ReplaceAllString(line, ""))
+		lenLine := utf8.RuneCountInString(reANSI.ReplaceAllString(line, ""))
 		if lenLine > maxLen {
 			maxLen = lenLine
 		}
 	}
 
 	for i, line := range *logoLines {
-		lenLine := len(reANSI.ReplaceAllString(line, ""))
+		lenLine := utf8.RuneCountInString(reANSI.ReplaceAllString(line, ""))
 		if lenLine < maxLen {
 			(*logoLines)[i] = fmt.Sprintf("%-*s", (maxLen-lenLine)+len(line), line)
 		}
@@ -54,11 +55,10 @@ func printInfo(hostInfo *info) error {
 	var output strings.Builder
 
 	if supportscolor.Stdout().Has256 || supportscolor.Stderr().Has16m {
-		colorCyan = "\033[38;5;039m"
+		colorCyan = "\u001B[38;5;039m"
 	} else {
-		colorCyan = "\033[00;36m"
+		colorCyan = "\u001B[00;36m"
 	}
-	//colorReset := "\033[0m"
 
 	// Each item of infoLines is a slice of strings representing a line
 	// of information. Each line contains:
@@ -254,11 +254,6 @@ func printInfo(hostInfo *info) error {
 		}
 		// Padding each lines with spaces to that each lines is the same length
 		lenLogoLine := padLogoLines(&logoLines)
-
-		// Replace the ANSI codes properly
-		for i, line := range logoLines {
-			logoLines[i] = strings.ReplaceAll(line, `\033`, "\033")
-		}
 
 		/* ---------- Vertically center the logo and the information ---------- */
 		// Here, we want to vertically center the display of

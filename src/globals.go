@@ -15,12 +15,12 @@ var (
 	defaultConfigFile    = fmt.Sprintf("%s/.config/%s/config.yaml", os.Getenv("HOME"), appName)
 	weatherCacheFile     = fmt.Sprintf("%s/.cache/%s/weather.json", os.Getenv("HOME"), appName)
 	weatherCacheDuration = 2 * time.Minute
-	reANSI               = regexp.MustCompile(`\\033\[[0-?]*[ -/]*[@-~]`)
+	reANSI               = regexp.MustCompile("[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))")
 	envHome              = os.Getenv("HOME")
 	hostInfo             = info{}
 	GitCommit            string
 	GitVersion           string
-	colorNormal          = "\033[0m"
+	colorNormal          = "\u001B[0m"
 	colorCyan            string // The colors will be defined depending on the terminal type (256 or 16 colors)
 )
 
