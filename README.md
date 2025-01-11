@@ -95,20 +95,29 @@ but you can specify another location with command line parameter `--config <path
 
 ### Weather
 
-You need to provide as least the city and country (in english) in the configuration file.
+Either the location will be automatically discovered, or you can provide it by either
+specifying coordinates (latitute and longitude) or a location name in the configuration file.
+For location name, you need to provide as least the city and country (in english), but you can
+optionally add a "state" (state in the US, canton in CH, region in FR, etc..), in case several
+cities with the same name exist in the country.
 
 ```yaml
 weather:
   location_name_en: "Geneva"
   location_country_en: "Switzerland"
+  location_state_en: "Geneva"
 ```
 
-Note: if you request the "weather" item but don't provide the location, the default location is _Geneva, Switzerland_.
+Example with coordinates:
+
+```yaml
+weather:
+  latitude: 46.204391
+  longitude: 6.143158
+```
 
 You can add the following optional parameters:
 
-- `location_state_en`: in case several cities have the same name, you can provide the state (in english).
-  - Correspond to a state (US), a canton (CH), a region (FR), etc...
 - `lang`: language to use for the current weather description.
   - Currently only "en" (default) or "fr" (french)
 - `units`: unit to use for temperature and wind speed
@@ -217,5 +226,4 @@ $ minfo -j
 
 ## TODO
 
-- Weather: cache information.
 - Make it work on x86_64

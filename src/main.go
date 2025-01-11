@@ -63,6 +63,16 @@ func main() {
 	spDataTypes := map[string]bool{}
 	writeWeatherCache := true // Do we need to write the weather cache file?
 
+	// First thing first: is the fetchWeather func will need to fetch the public IP ?
+	weatherFetchPublicIP := false
+	for _, requestedItem := range config.Items {
+		if requestedItem == "weather" {
+			if config.Weather.Latitude == nil && config.Weather.LocationNameEn == nil {
+				weatherFetchPublicIP = true
+			}
+			break
+		}
+	}
 	for _, requestedItem := range config.Items {
 		item := availableItems[requestedItem]
 
@@ -81,10 +91,8 @@ func main() {
 					spDataTypes[*item.SPDataType] = true
 				}
 			}
-		}
-
-		// other data, each fetched by its own function.
-		if item.Func != nil {
+		} else if item.Func != nil {
+			// other data, each fetched by its own function.
 			var fetch bool
 			if item.Title == "Weather" {
 				// We have a cache for the weather (default: 15 min)
@@ -97,6 +105,8 @@ func main() {
 				} else {
 					writeWeatherCache = false // for later, no need to refresh the cache
 				}
+			} else if item.Title == "Public IP" {
+				fetch = !weatherFetchPublicIP
 			} else {
 				// for all other items, just fetch the data
 				fetch = true

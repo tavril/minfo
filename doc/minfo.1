@@ -88,20 +88,21 @@ Wind gusts speed
 .P
 The weather information uses 2 lines of information (1 for location + weather description, and the other one for temperature/wind)\.
 .P
-In the configuration file you need to provide as least the city and country (in english)
+Location is either automatically discovered, or you can provide it by either specifying coordinates (latitute and longitude) or a location name in the configuration file\. For location name, you need to provide as least the city and country (in english), but you can optionally add a "state" (state in the US, canton in CH, region in FR, etc\.\.), in case several cities with the same name exist in the country\.
 .IP "" 4
 .nf
 weather:
   location_name_en: "Geneva"
   location_country_en: "Switzerland"
+  location_state_en: "Geneva"
+
+weather:
+  latitude: 46\.204391
+  longitude: 6\.143158
 .fi
 .IP "" 0
 .P
-Note: if you request the "weather" item but don't provide the location, the default location is Geneva, Switzerland\.
-.P
 You can add the following optional parameters
-.IP "\(bu" 4
-\fBlocation_state_en\fR: in case several cities have the same name, you can provide the state (in english)\.
 .IP "\(bu" 4
 \fBlang\fR: language to use for the current weather description\.
 .IP "\(bu" 4

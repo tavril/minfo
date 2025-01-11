@@ -89,8 +89,13 @@ type softwareInfo struct {
 }
 
 type publicIpInfo struct {
-	IP      string `json:"query,omitempty"`
-	Country string `json:"country,omitempty"`
+	IP          string  `json:"query,omitempty"`
+	Country     string  `json:"country,omitempty"`
+	CountryCode string  `json:"countryCode,omitempty"`
+	City        string  `json:"city,omitempty"`
+	State       string  `json:"regionName,omitempty"`
+	Latitude    float64 `json:"lat,omitempty"`
+	Longitude   float64 `json:"lon,omitempty"`
 }
 
 // info contains all the information that the tool can retrieve.

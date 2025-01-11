@@ -206,6 +206,8 @@ func printInfo(hostInfo *info) error {
 
 			if hostInfo.Weather.LocationName != "" {
 				location = fmt.Sprintf("%s, %s", hostInfo.Weather.LocationName, hostInfo.Weather.LocationCountryCode)
+			} else if hostInfo.PublicIp != nil {
+				location = fmt.Sprintf("%s, %s", hostInfo.PublicIp.City, hostInfo.PublicIp.CountryCode)
 			} else {
 				location = fmt.Sprintf("(%f, %f)", hostInfo.Weather.Latitude, hostInfo.Weather.Longitude)
 			}

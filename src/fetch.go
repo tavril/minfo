@@ -331,18 +331,28 @@ func fetchWeatherOpenMeteo(hostInfo *info) {
 
 	var latitude, longitude *float64
 	var countryCode string
-	if config.Weather.LocationNameEn != "" {
+	if config.Weather.LocationNameEn != nil {
 		latitude, longitude, countryCode = fetchCoordinatesFromName(
-			config.Weather.LocationNameEn,
-			config.Weather.LocationStateEn,
-			config.Weather.LocationCountryEn,
+			*config.Weather.LocationNameEn,
+			*config.Weather.LocationStateEn,
+			*config.Weather.LocationCountryEn,
 		)
 		if latitude == nil || longitude == nil {
 			return
 		}
-	} else {
+	} else if config.Weather.Latitude != nil && config.Weather.Longitude != nil {
 		latitude = config.Weather.Latitude
 		longitude = config.Weather.Longitude
+	} else {
+		if hostInfo.PublicIp == nil {
+			fetchPublicIp(hostInfo)
+			if hostInfo.PublicIp == nil {
+				return
+			}
+		}
+		latitude = &hostInfo.PublicIp.Latitude
+		longitude = &hostInfo.PublicIp.Longitude
+		countryCode = hostInfo.PublicIp.CountryCode
 	}
 
 	// Define the API URL
@@ -389,9 +399,13 @@ func fetchWeatherOpenMeteo(hostInfo *info) {
 	hostInfo.Weather.WindDirection = openMeteo.Current.WindDirection10m
 	hostInfo.Weather.CurrentWeather = wmoCodesDesc[openMeteo.Current.WeatherCode][config.Weather.Lang]
 	hostInfo.Weather.LocationCountryCode = countryCode
-	hostInfo.Weather.LocationName = config.Weather.LocationNameEn
+	if config.Weather.LocationNameEn != nil {
+		hostInfo.Weather.LocationName = *config.Weather.LocationNameEn
+	} else {
+		hostInfo.Weather.LocationName = ""
+	}
 	hostInfo.Weather.Latitude = *latitude
-	hostInfo.Weather.Longitude = *latitude
+	hostInfo.Weather.Longitude = *longitude
 
 	return
 }
@@ -401,19 +415,22 @@ func fetchCoordinatesFromName(locationName, locationState, locationCountry strin
 	url := fmt.Sprintf("https://geocoding-api.open-meteo.com/v1/search?name=%s", locationName)
 
 	// Make the HTTP GET request
-	response, err := http.Get(url)
+	client := &http.Client{
+		Timeout: 500 * time.Millisecond,
+	}
+	resp, err := client.Get(url)
 	if err != nil {
 		return
 	}
-	defer response.Body.Close()
+	defer resp.Body.Close()
 
 	// Check for successful response
-	if response.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusOK {
 		return
 	}
 
 	// Read the response body
-	body, err := io.ReadAll(response.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return
 	}
@@ -453,7 +470,10 @@ func fetchCoordinatesFromName(locationName, locationState, locationCountry strin
 
 // Fetch the public IP address (and its country name)
 func fetchPublicIp(hostInfo *info) {
-	hostInfo.PublicIp = &publicIpInfo{IP: "Unknown"}
+
+	if hostInfo.PublicIp != nil {
+		return
+	}
 	client := &http.Client{
 		Timeout: 500 * time.Millisecond,
 	}
@@ -469,10 +489,13 @@ func fetchPublicIp(hostInfo *info) {
 	if err != nil {
 		return
 	}
-
-	if err = json.Unmarshal(body, &hostInfo.PublicIp); err != nil {
+	// Unmarshal the JSON response into a tmp Struct,
+	// because in case of error we want hostInfo.PublicIp to be nil.
+	tmpStruct := publicIpInfo{}
+	if err = json.Unmarshal(body, &tmpStruct); err != nil {
 		return
 	}
+	hostInfo.PublicIp = &tmpStruct
 
 	return
 }

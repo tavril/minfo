@@ -23,9 +23,9 @@ type Config struct {
 type WeatherConfig struct {
 	Latitude          *float64 `yaml:"latitude,omitempty"`
 	Longitude         *float64 `yaml:"longitude,omitempty"`
-	LocationNameEn    string   `yaml:"location_name_en,omitempty"`
-	LocationStateEn   string   `yaml:"location_state_en,omitempty"`
-	LocationCountryEn string   `yaml:"location_country_en,omitempty"`
+	LocationNameEn    *string  `yaml:"location_name_en,omitempty"`
+	LocationStateEn   *string  `yaml:"location_state_en,omitempty"`
+	LocationCountryEn *string  `yaml:"location_country_en,omitempty"`
 	Units             string   `yaml:"units,omitempty"`
 	Lang              string   `yaml:"lang,omitempty"`
 }
@@ -227,11 +227,8 @@ func loadAndCheckConfig(configFilePath string) (err error) {
 			Cache:         nil,
 			Items:         defaultItems,
 			Weather: &WeatherConfig{
-				LocationNameEn:    "Geneva",
-				LocationStateEn:   "Geneva",
-				LocationCountryEn: "Switzerland",
-				Units:             "metric",
-				Lang:              "en",
+				Units: "metric",
+				Lang:  "en",
 			},
 		}
 		return nil
@@ -270,11 +267,8 @@ func loadAndCheckConfig(configFilePath string) (err error) {
 	}
 	if config.Weather == nil {
 		config.Weather = &WeatherConfig{
-			LocationNameEn:    "Geneva",
-			LocationStateEn:   "Geneva",
-			LocationCountryEn: "Switzerland",
-			Units:             "metric",
-			Lang:              "en",
+			Units: "metric",
+			Lang:  "en",
 		}
 	} else {
 		if config.Weather.Units == "" {
@@ -287,14 +281,14 @@ func loadAndCheckConfig(configFilePath string) (err error) {
 		} else if config.Weather.Lang != "en" && config.Weather.Lang != "fr" {
 			return fmt.Errorf("invalid language: %s", config.Weather.Lang)
 		}
-		if config.Weather.LocationNameEn != "" {
-			if config.Weather.LocationCountryEn == "" {
+		if config.Weather.LocationNameEn != nil {
+			if config.Weather.LocationCountryEn == nil {
 				return fmt.Errorf("for weather, you need to provide a country")
 			}
-		} else if config.Weather.Latitude == nil || config.Weather.Longitude == nil {
-			return fmt.Errorf("for weather, you need to provide either a location name or latitude and longitude")
+			if config.Weather.LocationStateEn == nil {
+				config.Weather.LocationStateEn = new(string) // let's initialize it to ""
+			}
 		}
-
 	}
 
 	if config.CacheFilePath != nil {
