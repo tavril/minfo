@@ -32,6 +32,9 @@ func main() {
 	if cmdLine.Logo != nil {
 		config.Logo = cmdLine.Logo
 	}
+	if cmdLine.DisplayNerdSymbols != nil {
+		config.DisplayNerdSymbols = cmdLine.DisplayNerdSymbols
+	}
 
 	/* ---------- Deal with cache ---------- */
 	// We cache some data which are not going to change:

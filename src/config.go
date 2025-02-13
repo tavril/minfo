@@ -12,12 +12,13 @@ import (
 
 // This struct represents the configuration file
 type Config struct {
-	CacheFilePath *string        `yaml:"cache_file,omitempty"`
-	DisplayLogo   *bool          `yaml:"display_logo,omitempty"`
-	Logo          *string        `yaml:"logo_file,omitempty"`
-	Cache         *bool          `yaml:"cache,omitempty"`
-	Items         []string       `yaml:"items,omitempty"`
-	Weather       *WeatherConfig `yaml:"weather,omitempty"`
+	CacheFilePath      *string        `yaml:"cache_file,omitempty"`
+	DisplayLogo        *bool          `yaml:"display_logo,omitempty"`
+	Logo               *string        `yaml:"logo_file,omitempty"`
+	Cache              *bool          `yaml:"cache,omitempty"`
+	DisplayNerdSymbols *bool          `yaml:"nerd_symbols,omitempty"`
+	Items              []string       `yaml:"items,omitempty"`
+	Weather            *WeatherConfig `yaml:"weather,omitempty"`
 }
 
 type WeatherConfig struct {
@@ -114,6 +115,7 @@ var (
 //   - Optional (i.e. default = false)
 type item struct {
 	Title      string
+	Nerd       string // Nerd Font symbol
 	SPDataType *string
 	Func       *NamedFunc
 	IsCached   bool
@@ -124,81 +126,99 @@ var availableItems = map[string]item{
 	/* ---------- System Profiler Data (cached data) ---------- */
 	"cpu": {
 		Title:      "CPU",
+		Nerd:       "",
 		SPDataType: &SPHardwareDataType,
 		IsCached:   true,
 	},
 	"gpu": {
 		Title:      "GPU",
+		Nerd:       "",
 		SPDataType: &SPDisplaysDataType,
 		IsCached:   true,
 	},
 	"model": {
 		Title:      "Model",
+		Nerd:       "",
 		SPDataType: &SPHardwareDataType,
 		IsCached:   true,
 	},
 	"memory": {
 		Title:      "Memory",
+		Nerd:       "",
 		SPDataType: &SPMemoryDataType,
 		IsCached:   true,
 	},
 	"serial_number": {
 		Title:      "Serial",
+		Nerd:       "",
 		SPDataType: &SPHardwareDataType,
 		IsCached:   true,
 	},
 	/* ---------- System Profiler Data (non-cached data) ---------- */
 	"battery": {
 		Title:      "Battery",
+		Nerd:       "󰂄",
 		SPDataType: &SPPowerDataType,
 	},
 	"disk": {
 		Title:      "Disk",
+		Nerd:       "󰋊",
 		SPDataType: &SPStorageDataType,
 	},
 	"display": {
 		Title:      "Display",
+		Nerd:       "",
 		SPDataType: &SPDisplaysDataType,
 	},
 	"hostname": {
 		Title:      "Hostname",
+		Nerd:       "",
 		SPDataType: &SPSoftwareDataType,
 	},
 	"os": {
 		Title:      "OS",
+		Nerd:       "",
 		SPDataType: &SPSoftwareDataType,
 	},
 	"system_integrity": {
 		Title:      "macOS SIP",
+		Nerd:       "",
 		SPDataType: &SPSoftwareDataType,
 	},
 	"uptime": {
 		Title:      "Uptime",
+		Nerd:       "",
 		SPDataType: &SPSoftwareDataType,
 	},
 	"user": {
 		Title:      "User",
+		Nerd:       "",
 		SPDataType: &SPSoftwareDataType,
 	},
 	/* ---------- Other Data ---------- */
 	"datetime": {
 		Title: "Date/Time",
+		Nerd:  "",
 		Func:  &datetimeNamedFunc,
 	},
 	"public_ip": {
 		Title: "Public IP",
+		Nerd:  "󱦂",
 		Func:  &publicIpNamedFunc,
 	},
 	"software": {
 		Title: "Software",
+		Nerd:  "",
 		Func:  &softwareNamedFunc,
 	},
 	"terminal": {
 		Title: "Terminal",
+		Nerd:  "",
 		Func:  &termProgramNamedFunc,
 	},
 	"weather": {
 		Title: "Weather",
+		Nerd:  "󰖙",
 		Func:  &weatherNamedFunc,
 	},
 }
@@ -221,11 +241,12 @@ func getDefaultLogoFilePath() (defaultLogoFilePath *string) {
 func loadAndCheckConfig(configFilePath string) (err error) {
 	if configFilePath == "" {
 		config = &Config{
-			CacheFilePath: &defaultCacheFilePath,
-			DisplayLogo:   nil,
-			Logo:          getDefaultLogoFilePath(),
-			Cache:         nil,
-			Items:         defaultItems,
+			CacheFilePath:      &defaultCacheFilePath,
+			DisplayLogo:        nil,
+			Logo:               getDefaultLogoFilePath(),
+			Cache:              nil,
+			DisplayNerdSymbols: nil,
+			Items:              defaultItems,
 			Weather: &WeatherConfig{
 				Units: "metric",
 				Lang:  "en",
@@ -314,6 +335,10 @@ func loadAndCheckConfig(configFilePath string) (err error) {
 		}
 	} else {
 		config.Logo = getDefaultLogoFilePath()
+	}
+	if config.DisplayNerdSymbols == nil {
+		config.DisplayNerdSymbols = new(bool)
+		*config.DisplayNerdSymbols = true // This default value might be overridden by the command line
 	}
 
 	return nil

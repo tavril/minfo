@@ -2,6 +2,7 @@
 cache_file: ~/.minfo-cache.json
 cache: true
 logo: true
+nerd_symbols: true
 logo_file: ~/.minfo-logo
 items:
   - user

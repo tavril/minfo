@@ -63,6 +63,10 @@ The ASCII art logo support both 16 and 256 colors terminal.
     Optional (default $HOMEBREW_PREFIX/share/minfo/apple or $HOME/.config/minfo/logo)
     Ignored if --json is set.
 
+  * `-n|--nerd-symbols`:
+    Add a nerd font symbol in front of each items' title
+    Optional (default: true)
+
   * `-i|--items`:
     Displays the list of all available items and exit.
 
@@ -276,4 +280,3 @@ Display available items
       uptime
       user
       weather
-    

@@ -11,7 +11,14 @@ import (
 
 // helper to create a line of information
 func createInfoLine(requestedItem, info string) []string {
-	return []string{colorCyan, availableItems[requestedItem].Title, colorNormal, info}
+	var realTitle string
+	if config.DisplayNerdSymbols != nil && *config.DisplayNerdSymbols {
+		realTitle = fmt.Sprintf("%s %s", availableItems[requestedItem].Nerd, availableItems[requestedItem].Title)
+	} else {
+		realTitle = availableItems[requestedItem].Title
+	}
+	//return []string{colorCyan, availableItems[requestedItem].Title, colorNormal, info}
+	return []string{colorCyan, realTitle, colorNormal, info}
 }
 
 // Each info line gets a Title and actual information
@@ -229,7 +236,11 @@ func printInfo(hostInfo *info) error {
 					hostInfo.Weather.WindUnit,
 				),
 			)
-			tmp[1] = "Temp. | Wind"
+			if config.DisplayNerdSymbols != nil && *config.DisplayNerdSymbols {
+				tmp[1] = " Temp. | Wind"
+			} else {
+				tmp[1] = "Temp. | Wind"
+			}
 			infoLines = append(infoLines, tmp)
 		}
 	}

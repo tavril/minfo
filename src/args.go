@@ -17,11 +17,12 @@ Description:
 
 Usage:
     %s [--config <path>] [-j|--json] [-i|--items] [-v|--version] [-l|--logo <path>]
-    %s [-r|--refresh[=false]] [-c|--cache[=false]] [-d|--display-logo[=false]]
+    %s [-r|--refresh[=false]] [-c|--cache[=false]] [-d|--display-logo[=false]] [-n|--nerd-symbols[=false]]
 
 Options:
     --config <path>             Path to the configuration file (default: %s).
     -d, --display-logo[=false]  Display the ASCII art logo (default: true).
+    -n, --nerd-symbols[=false]  Add nerd font symbol for each item title (default: true).
     -l, --logo[=<path>]         Path to ASCII art logo file
 	                            (default: $HOMEBREW_PREFIX/share/minfo/apple or $HOME/.config/minfo/logo).
     -j, --json[=false]          Display information in JSON instead of plain text (default: false).
@@ -45,14 +46,15 @@ If you provide --json=true, then --display-logo will be ignored.
 }
 
 type cmdLineParams struct {
-	Json           bool
-	RefreshCache   bool
-	Cache          *bool
-	DisplayLogo    *bool
-	Logo           *string
-	Items          bool
-	Version        bool
-	ConfigFilePath string
+	Json               bool
+	RefreshCache       bool
+	Cache              *bool
+	DisplayLogo        *bool
+	DisplayNerdSymbols *bool
+	Logo               *string
+	Items              bool
+	Version            bool
+	ConfigFilePath     string
 }
 
 func parseCmdLineArgs(args []string) (*cmdLineParams, error) {
@@ -68,6 +70,7 @@ func parseCmdLineArgs(args []string) (*cmdLineParams, error) {
 		helpFlag           bool
 	)
 	displayLogoFlag := new(bool)
+	displayNerdSymbolsFlag := new(bool)
 	cacheFlag := new(bool)
 	logoFlag := new(string)
 
@@ -94,6 +97,9 @@ func parseCmdLineArgs(args []string) (*cmdLineParams, error) {
 	fs.BoolVar(displayLogoFlag, "display-logo", true, "display the ASCII art logo (default: true).")
 	fs.BoolVar(displayLogoFlag, "d", true, "display the ASCII art logo (default: true).")
 
+	fs.BoolVar(displayNerdSymbolsFlag, "nerd-symbols", true, "add nerd font symbol for each item title (default: true).")
+	fs.BoolVar(displayNerdSymbolsFlag, "n", true, "add nerd font symbol for each item title (default: true).")
+
 	fs.StringVar(logoFlag, "logo", "", "path to the logo file")
 	fs.StringVar(logoFlag, "l", "", "path to the logo file")
 
@@ -106,9 +112,10 @@ func parseCmdLineArgs(args []string) (*cmdLineParams, error) {
 		os.Exit(0)
 	}
 
-	// Check if flags --display-logo, logo and --cache were explicitly set
+	// Check if flags --display-logo, --logo, --cache, and --nerd-symbol were explicitly set
 	// in which case they would override the values in configuration file.
 	displayLogoFlagSet := false
+	displayNerdSymbolsFlagSet := false
 	logoFlagSet := false
 	cacheFlagSet := false
 	fs.Visit(func(f *flag.Flag) {
@@ -118,6 +125,8 @@ func parseCmdLineArgs(args []string) (*cmdLineParams, error) {
 			logoFlagSet = true
 		} else if f.Name == "cache" || f.Name == "c" {
 			cacheFlagSet = true
+		} else if f.Name == "nerd-symbols" || f.Name == "n" {
+			displayNerdSymbolsFlagSet = true
 		}
 
 	})
@@ -130,16 +139,20 @@ func parseCmdLineArgs(args []string) (*cmdLineParams, error) {
 	if !cacheFlagSet {
 		*cacheFlag = true
 	}
+	if !displayNerdSymbolsFlagSet {
+		*displayNerdSymbolsFlag = true
+	}
 
 	return &cmdLineParams{
-		Json:           jsonFlag,
-		RefreshCache:   refreshCacheFlag,
-		Cache:          cacheFlag,
-		DisplayLogo:    displayLogoFlag,
-		Logo:           logoFlag,
-		Items:          itemsFlag,
-		Version:        versionFlag,
-		ConfigFilePath: configFilePathFlag,
+		Json:               jsonFlag,
+		RefreshCache:       refreshCacheFlag,
+		Cache:              cacheFlag,
+		DisplayLogo:        displayLogoFlag,
+		Logo:               logoFlag,
+		DisplayNerdSymbols: displayNerdSymbolsFlag,
+		Items:              itemsFlag,
+		Version:            versionFlag,
+		ConfigFilePath:     configFilePathFlag,
 	}, nil
 }
 
