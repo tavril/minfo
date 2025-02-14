@@ -193,16 +193,20 @@ func printInfo(hostInfo *info) error {
 				),
 			))
 		case "public_ip":
-			// Case we have a "Unknown" country (any error in function getPublicIpInfo)
-			if len(hostInfo.PublicIp.Country) == 0 {
-				infoLines = append(infoLines, createInfoLine(requestedItem, hostInfo.PublicIp.IP))
+			if hostInfo.PublicIp != nil {
+				// Case we have a "Unknown" country (any error in function getPublicIpInfo)
+				if len(hostInfo.PublicIp.Country) == 0 {
+					infoLines = append(infoLines, createInfoLine(requestedItem, hostInfo.PublicIp.IP))
+				} else {
+					infoLines = append(infoLines, createInfoLine(requestedItem,
+						fmt.Sprintf("%s (%s)",
+							hostInfo.PublicIp.IP,
+							hostInfo.PublicIp.Country,
+						),
+					))
+				}
 			} else {
-				infoLines = append(infoLines, createInfoLine(requestedItem,
-					fmt.Sprintf("%s (%s)",
-						hostInfo.PublicIp.IP,
-						hostInfo.PublicIp.Country,
-					),
-				))
+				infoLines = append(infoLines, createInfoLine(requestedItem, "Unknown"))
 			}
 		case "uptime":
 			infoLines = append(infoLines, createInfoLine(requestedItem, hostInfo.Uptime))
