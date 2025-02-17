@@ -416,7 +416,7 @@ func fetchCoordinatesFromName(locationName, locationState, locationCountry strin
 
 	// Make the HTTP GET request
 	client := &http.Client{
-		Timeout: 500 * time.Millisecond,
+		Timeout: 1 * time.Second,
 	}
 	resp, err := client.Get(url)
 	if err != nil {
@@ -464,7 +464,6 @@ func fetchCoordinatesFromName(locationName, locationState, locationCountry strin
 			return
 		}
 	}
-	fmt.Printf("in fetchCoordinatedFromName: Not found\n")
 	return
 }
 
