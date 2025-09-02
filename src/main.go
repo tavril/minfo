@@ -68,12 +68,9 @@ func main() {
 
 	// First thing first: is the fetchWeather func will need to fetch the public IP ?
 	weatherFetchPublicIP := false
-	for _, requestedItem := range config.Items {
-		if requestedItem == "weather" {
-			if config.Weather.Latitude == nil && config.Weather.LocationNameEn == nil {
-				weatherFetchPublicIP = true
-			}
-			break
+	if slices.Contains(config.Items, "weather") {
+		if config.Weather.Latitude == nil && config.Weather.LocationNameEn == nil {
+			weatherFetchPublicIP = true
 		}
 	}
 	for _, requestedItem := range config.Items {

@@ -274,7 +274,7 @@ func printInfo(hostInfo *info) error {
 
 		/* ---------- Vertically center the logo and the information ---------- */
 		// Here, we want to vertically center the display of
-		//the logo and the information. So we calculate a padding to be added
+		// the logo and the information. So we calculate a padding to be added
 		// to the top and bottom of either the logo or the information,
 		// depending on which one is shorter.
 
@@ -293,21 +293,21 @@ func printInfo(hostInfo *info) error {
 
 			if lenLogoLines > lenInfoLines {
 				emptyLine := []string{"", "", "", ""}
-				for i := 0; i < topPadding; i++ {
+				for range topPadding {
 					prependInfoArr = append(prependInfoArr, emptyLine)
 				}
 				infoLines = append(prependInfoArr, infoLines...)
-				for i := 0; i < bottomPadding; i++ {
+				for range bottomPadding {
 					appendInfoArr = append(appendInfoArr, emptyLine)
 				}
 				infoLines = append(infoLines, appendInfoArr...)
 			} else {
 				emptyLine := strings.Repeat(" ", lenLogoLine)
-				for i := 0; i < topPadding; i++ {
+				for range topPadding {
 					prependLogoArr = append(prependLogoArr, emptyLine)
 				}
 				logoLines = append(prependLogoArr, logoLines...)
-				for i := 0; i < bottomPadding; i++ {
+				for range bottomPadding {
 					appendLogoArr = append(appendLogoArr, emptyLine)
 				}
 				logoLines = append(logoLines, appendLogoArr...)
@@ -316,7 +316,7 @@ func printInfo(hostInfo *info) error {
 
 		/* ---------- Prepare the logo and the information ---------- */
 		dynamicPadding := getPaddingSize(infoLines)
-		for i := 0; i < maxLines; i++ {
+		for i := range maxLines {
 			output.WriteString(fmt.Sprintf("%s  %s%-*s%s%s\n",
 				logoLines[i],
 				infoLines[i][0],

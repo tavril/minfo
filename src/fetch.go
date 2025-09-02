@@ -21,7 +21,7 @@ import (
 // Custom UnmarshalJSON to handle both "chip_type" and "cpu_type"
 func (h *HardwareInfo) UnmarshalJSON(data []byte) error {
 	// Parse the input JSON into a temporary map
-	var temp map[string]interface{}
+	var temp map[string]any
 	if err := json.Unmarshal(data, &temp); err != nil {
 		return err
 	}
@@ -266,7 +266,6 @@ func fetchModelYear(model *Model) {
 		model.SubName = matches[2]
 		model.Date = matches[3]
 	}
-	return
 }
 
 func fetchDateTime(hostInfo *info) {
@@ -312,8 +311,6 @@ func fetchSoftware(hostInfo *info) {
 		return
 	}
 	hostInfo.Software.NumBrewCasks = len(strings.Split(output, "\n"))
-
-	return
 }
 
 // Fetch the terminal program using TERM_PROGRAM env. variable
@@ -323,7 +320,6 @@ func fetchTermProgram(hostInfo *info) {
 		hostInfo.Terminal = "Unknown"
 	}
 	hostInfo.Terminal = termProgram
-	return
 }
 
 func fetchWeatherOpenMeteo(hostInfo *info) {
@@ -406,8 +402,6 @@ func fetchWeatherOpenMeteo(hostInfo *info) {
 	}
 	hostInfo.Weather.Latitude = *latitude
 	hostInfo.Weather.Longitude = *longitude
-
-	return
 }
 
 func fetchCoordinatesFromName(locationName, locationState, locationCountry string) (latitude *float64, longitude *float64, countryCode string) {
@@ -495,6 +489,4 @@ func fetchPublicIp(hostInfo *info) {
 		return
 	}
 	hostInfo.PublicIp = &tmpStruct
-
-	return
 }
