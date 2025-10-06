@@ -161,6 +161,7 @@ func fetchSystemProfiler(hostInfo *info, items []string, spDataTypes map[string]
 			"13": "Ventura",
 			"14": "Sonoma",
 			"15": "Sequoia",
+			"26": "Tahoe",
 		}
 		var ok bool
 
