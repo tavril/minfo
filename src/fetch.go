@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"regexp"
@@ -16,6 +17,12 @@ import (
 	"unicode/utf8"
 
 	"github.com/micromdm/plist"
+)
+
+var (
+	weatherHTTPClient  = &http.Client{Timeout: 3 * time.Second}
+	geoHTTPClient      = &http.Client{Timeout: 2 * time.Second}
+	publicIPHTTPClient = &http.Client{Timeout: 1200 * time.Millisecond}
 )
 
 // Custom UnmarshalJSON to handle both "chip_type" and "cpu_type"
@@ -71,6 +78,9 @@ func fetchSystemProfiler(hostInfo *info, items []string, spDataTypes map[string]
 	/* ---------- Parse the output of system_profiler ---------- */
 
 	if slices.Contains(items, "model") && !haveCache {
+		if len(spInfo.Hardware) == 0 {
+			return fmt.Errorf("system_profiler returned no hardware information")
+		}
 		// We also have to call ioreg to get all the information about the model
 
 		hostInfo.Model = &Model{}
@@ -79,6 +89,9 @@ func fetchSystemProfiler(hostInfo *info, items []string, spDataTypes map[string]
 	}
 
 	if slices.Contains(items, "cpu") && !haveCache {
+		if len(spInfo.Hardware) == 0 {
+			return fmt.Errorf("system_profiler returned no hardware information")
+		}
 		// Note: differences between Apple Silicon and Intel CPUs:
 		// - field called "chip_type" for Apple Silicon
 		// - field called "cpu_type" for Intel
@@ -98,11 +111,17 @@ func fetchSystemProfiler(hostInfo *info, items []string, spDataTypes map[string]
 	}
 
 	if slices.Contains(items, "gpu") && !haveCache {
+		if len(spInfo.Displays) == 0 {
+			return fmt.Errorf("system_profiler returned no display information")
+		}
 		tmp, _ := strconv.Atoi(spInfo.Displays[0].NumCores)
 		hostInfo.GpuCores = &tmp
 	}
 
 	if slices.Contains(items, "memory") && !haveCache {
+		if len(spInfo.Memory) == 0 {
+			return fmt.Errorf("system_profiler returned no memory information")
+		}
 		hostInfo.Memory = &Memory{}
 		for _, mem := range spInfo.Memory {
 			memMap, _ := mem.(map[string]interface{})
@@ -130,6 +149,9 @@ func fetchSystemProfiler(hostInfo *info, items []string, spDataTypes map[string]
 	}
 
 	if slices.Contains(items, "user") {
+		if len(spInfo.Software) == 0 {
+			return fmt.Errorf("system_profiler returned no software information")
+		}
 		re := regexp.MustCompile(`^([\w\s]+)\s\((\w+)\)$`)
 		matches := re.FindStringSubmatch(spInfo.Software[0].UserName)
 
@@ -141,10 +163,16 @@ func fetchSystemProfiler(hostInfo *info, items []string, spDataTypes map[string]
 	}
 
 	if slices.Contains(items, "hostname") {
+		if len(spInfo.Software) == 0 {
+			return fmt.Errorf("system_profiler returned no software information")
+		}
 		hostInfo.Hostname = spInfo.Software[0].HostName
 	}
 
 	if slices.Contains(items, "os") {
+		if len(spInfo.Software) == 0 {
+			return fmt.Errorf("system_profiler returned no software information")
+		}
 		hostInfo.Os = &osInfo{}
 		re := regexp.MustCompile(`^(\w+)\s([\d.]+)\s\(([^)]+)\)$`)
 		matches := re.FindStringSubmatch(spInfo.Software[0].OsVersion)
@@ -171,14 +199,23 @@ func fetchSystemProfiler(hostInfo *info, items []string, spDataTypes map[string]
 	}
 
 	if slices.Contains(items, "system_integrity") {
+		if len(spInfo.Software) == 0 {
+			return fmt.Errorf("system_profiler returned no software information")
+		}
 		hostInfo.SystemIntegrity = spInfo.Software[0].SystemIntegrity
 	}
 
 	if slices.Contains(items, "serial_number") && !haveCache {
+		if len(spInfo.Hardware) == 0 {
+			return fmt.Errorf("system_profiler returned no hardware information")
+		}
 		hostInfo.SerialNumber = &spInfo.Hardware[0].SerialNumber
 	}
 
 	if slices.Contains(items, "disk") {
+		if len(spInfo.Storage) == 0 {
+			return fmt.Errorf("system_profiler returned no storage information")
+		}
 		hostInfo.Disk = &diskInfo{}
 		for _, hd := range spInfo.Storage {
 			if hd.MountPoint == "/" {
@@ -191,6 +228,9 @@ func fetchSystemProfiler(hostInfo *info, items []string, spDataTypes map[string]
 	}
 
 	if slices.Contains(items, "battery") {
+		if len(spInfo.Power) == 0 {
+			return fmt.Errorf("system_profiler returned no power information")
+		}
 		hostInfo.Battery = &batteryInfo{}
 		hostInfo.Battery.StatusPercent = spInfo.Power[0].BatteryChargeInfo.StateOfCharge
 		hostInfo.Battery.CapacityPercent, _ = strconv.Atoi(strings.TrimSuffix(spInfo.Power[0].BatteryHealthInfo.MaxCapacity, "%"))
@@ -224,6 +264,9 @@ func fetchSystemProfiler(hostInfo *info, items []string, spDataTypes map[string]
 	}
 
 	if slices.Contains(items, "uptime") {
+		if len(spInfo.Software) == 0 {
+			return fmt.Errorf("system_profiler returned no software information")
+		}
 		uptimeInfoArr := strings.Split(strings.Split(spInfo.Software[0].Uptime, " ")[1], ":")
 		hostInfo.Uptime = fmt.Sprintf("%s days, %s hours", uptimeInfoArr[0], uptimeInfoArr[1])
 	}
@@ -304,14 +347,14 @@ func fetchSoftware(hostInfo *info) {
 	if err != nil {
 		return
 	}
-	hostInfo.Software.NumBrewFormulae = len(strings.Split(output, "\n"))
+	hostInfo.Software.NumBrewFormulae = countNonEmptyLines(output)
 
 	cmd = exec.Command(filePath, "list", "-1", "--casks")
 	output, err = runCommand(cmd)
 	if err != nil {
 		return
 	}
-	hostInfo.Software.NumBrewCasks = len(strings.Split(output, "\n"))
+	hostInfo.Software.NumBrewCasks = countNonEmptyLines(output)
 }
 
 // Fetch the terminal program using TERM_PROGRAM env. variable
@@ -319,6 +362,7 @@ func fetchTermProgram(hostInfo *info) {
 	termProgram := os.Getenv("TERM_PROGRAM")
 	if termProgram == "" {
 		hostInfo.Terminal = "Unknown"
+		return
 	}
 	hostInfo.Terminal = termProgram
 }
@@ -363,7 +407,7 @@ func fetchWeatherOpenMeteo(hostInfo *info) {
 	}
 
 	// Make the HTTP GET request
-	response, err := http.Get(url)
+	response, err := weatherHTTPClient.Get(url)
 	if err != nil {
 		return
 	}
@@ -394,7 +438,17 @@ func fetchWeatherOpenMeteo(hostInfo *info) {
 	hostInfo.Weather.WindSpeed = openMeteo.Current.WindSpeed10m
 	hostInfo.Weather.WindGusts = openMeteo.Current.WindGusts10m
 	hostInfo.Weather.WindDirection = openMeteo.Current.WindDirection10m
-	hostInfo.Weather.CurrentWeather = wmoCodesDesc[openMeteo.Current.WeatherCode][config.Weather.Lang]
+	if descByLang, ok := wmoCodesDesc[openMeteo.Current.WeatherCode]; ok {
+		if desc, ok := descByLang[config.Weather.Lang]; ok {
+			hostInfo.Weather.CurrentWeather = desc
+		} else if fallback, ok := descByLang["en"]; ok {
+			hostInfo.Weather.CurrentWeather = fallback
+		} else {
+			hostInfo.Weather.CurrentWeather = "Unknown"
+		}
+	} else {
+		hostInfo.Weather.CurrentWeather = "Unknown"
+	}
 	hostInfo.Weather.LocationCountryCode = countryCode
 	if config.Weather.LocationNameEn != nil {
 		hostInfo.Weather.LocationName = *config.Weather.LocationNameEn
@@ -407,13 +461,16 @@ func fetchWeatherOpenMeteo(hostInfo *info) {
 
 func fetchCoordinatesFromName(locationName, locationState, locationCountry string) (latitude *float64, longitude *float64, countryCode string) {
 	// Define the API URL
-	url := fmt.Sprintf("https://geocoding-api.open-meteo.com/v1/search?name=%s", locationName)
+	reqURL, err := url.Parse("https://geocoding-api.open-meteo.com/v1/search")
+	if err != nil {
+		return
+	}
+	query := reqURL.Query()
+	query.Set("name", locationName)
+	reqURL.RawQuery = query.Encode()
 
 	// Make the HTTP GET request
-	client := &http.Client{
-		Timeout: 1 * time.Second,
-	}
-	resp, err := client.Get(url)
+	resp, err := geoHTTPClient.Get(reqURL.String())
 	if err != nil {
 		return
 	}
@@ -462,16 +519,23 @@ func fetchCoordinatesFromName(locationName, locationState, locationCountry strin
 	return
 }
 
+type ipapiResponse struct {
+	IP          string  `json:"ip"`
+	City        string  `json:"city"`
+	Region      string  `json:"region"`
+	CountryName string  `json:"country_name"`
+	CountryCode string  `json:"country"`
+	Latitude    float64 `json:"latitude"`
+	Longitude   float64 `json:"longitude"`
+}
+
 // Fetch the public IP address (and its country name)
 func fetchPublicIp(hostInfo *info) {
 
 	if hostInfo.PublicIp != nil {
 		return
 	}
-	client := &http.Client{
-		Timeout: 500 * time.Millisecond,
-	}
-	resp, err := client.Get("http://ip-api.com/json")
+	resp, err := publicIPHTTPClient.Get("https://ipapi.co/json/")
 	if err != nil {
 		return
 	}
@@ -485,9 +549,17 @@ func fetchPublicIp(hostInfo *info) {
 	}
 	// Unmarshal the JSON response into a tmp Struct,
 	// because in case of error we want hostInfo.PublicIp to be nil.
-	tmpStruct := publicIpInfo{}
+	tmpStruct := ipapiResponse{}
 	if err = json.Unmarshal(body, &tmpStruct); err != nil {
 		return
 	}
-	hostInfo.PublicIp = &tmpStruct
+	hostInfo.PublicIp = &publicIpInfo{
+		IP:          tmpStruct.IP,
+		Country:     tmpStruct.CountryName,
+		CountryCode: tmpStruct.CountryCode,
+		City:        tmpStruct.City,
+		State:       tmpStruct.Region,
+		Latitude:    tmpStruct.Latitude,
+		Longitude:   tmpStruct.Longitude,
+	}
 }

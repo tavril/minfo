@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"slices"
-	"sync"
 )
 
 func main() {
@@ -43,11 +42,13 @@ func main() {
 	// that can be cached (even if not requested by the suer), and write it,
 	// except if explicitly requested by the user to not use the cache.
 	if *config.Cache {
-		if err := readCacheFile(*config.CacheFilePath); err != nil {
+		if err := readCacheFile(*config.CacheFilePath, &hostInfo); err != nil {
 			if !errors.Is(err, os.ErrNotExist) && err != errEmptyCache {
 				log.Fatalf("Error reading cache file: %v", err)
 			}
 			// no cache file (or empty) --> Must populate it, i.e. like '-r' was passed.
+			cmdLine.RefreshCache = true
+		} else if !cachedItemsComplete(config.Items, &hostInfo) {
 			cmdLine.RefreshCache = true
 		}
 	}
@@ -100,10 +101,14 @@ func main() {
 					fetch = true // Specifically requested to refresh the cache
 				} else if isOlder, err := isFileOlderThan(weatherCacheFile, weatherCacheDuration); err != nil || isOlder {
 					fetch = true // either file > 15 min, or error.
-				} else if err := readCacheFile(weatherCacheFile); err != nil || hostInfo.Weather == nil {
-					fetch = true // file exists but empty or error
 				} else {
-					writeWeatherCache = false // for later, no need to refresh the cache
+					tmpInfo := info{}
+					if err := readCacheFile(weatherCacheFile, &tmpInfo); err != nil || tmpInfo.Weather == nil {
+						fetch = true // file exists but empty or error
+					} else {
+						hostInfo.Weather = tmpInfo.Weather
+						writeWeatherCache = false // for later, no need to refresh the cache
+					}
 				}
 			} else if item.Title == "Public IP" {
 				fetch = !weatherFetchPublicIP
@@ -113,7 +118,8 @@ func main() {
 			}
 
 			if fetch {
-				tasks = append(tasks, func() { (*item.Func).Func(&hostInfo) })
+				nf := item.Func
+				tasks = append(tasks, func() { (*nf).Func(&hostInfo) })
 			}
 		}
 	}
@@ -130,15 +136,9 @@ func main() {
 	}
 
 	/* ---------- Execute tasks ---------- */
-	var wg sync.WaitGroup
-	wg.Add(len(tasks))
 	for _, task := range tasks {
-		go func(t func()) {
-			defer wg.Done()
-			t()
-		}(task)
+		task()
 	}
-	wg.Wait()
 
 	if spErr != nil {
 		log.Fatalf("Error fetching system profiler: %v", spErr)

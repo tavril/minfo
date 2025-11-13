@@ -39,11 +39,11 @@ tidy:
 	@go mod tidy
 
 doc:
-	@command -v $(TOOL) >/dev/null 2>&1 || { \
-		echo >&2 "Error: $(TOOL) is not installed."; \
+	@command -v $(RONN) >/dev/null 2>&1 || { \
+		echo >&2 "Error: $(RONN) is not installed."; \
 		exit 1; \
 	}
 	@echo "Generating documentation..."
-	@cd $(DOC_DIR) && ronn --roff $(APP_NAME).1.ronn
+	@cd $(DOC_DIR) && $(RONN) --roff $(APP_NAME).1.ronn
 
 .PHONY: all build run clean tidy doc

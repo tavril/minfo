@@ -8,9 +8,8 @@ import (
 )
 
 var errEmptyCache = errors.New("cache file is empty")
-var errInvalidWeatherCache = errors.New("invalid weather cache")
 
-func readCacheFile(cacheFilePath string) (err error) {
+func readCacheFile(cacheFilePath string, out *info) (err error) {
 	var fileInfo os.FileInfo
 	if fileInfo, err = os.Stat(cacheFilePath); err != nil {
 		return
@@ -22,7 +21,7 @@ func readCacheFile(cacheFilePath string) (err error) {
 	if cacheData, err = os.ReadFile(cacheFilePath); err != nil {
 		return
 	}
-	err = json.Unmarshal(cacheData, &hostInfo)
+	err = json.Unmarshal(cacheData, out)
 	return
 }
 
@@ -60,4 +59,36 @@ func populateCache(cacheFilePath string) (err error) {
 		return err
 	}
 	return nil
+}
+
+func cachedItemsComplete(items []string, info *info) bool {
+	for _, itemName := range items {
+		item, ok := availableItems[itemName]
+		if !ok || !item.IsCached {
+			continue
+		}
+		switch itemName {
+		case "cpu":
+			if info.Cpu == nil {
+				return false
+			}
+		case "gpu":
+			if info.GpuCores == nil {
+				return false
+			}
+		case "model":
+			if info.Model == nil {
+				return false
+			}
+		case "memory":
+			if info.Memory == nil {
+				return false
+			}
+		case "serial_number":
+			if info.SerialNumber == nil {
+				return false
+			}
+		}
+	}
+	return true
 }

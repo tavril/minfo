@@ -14,7 +14,7 @@ var (
 	arch                 = runtime.GOARCH
 	defaultConfigFile    = fmt.Sprintf("%s/.config/%s/config.yaml", os.Getenv("HOME"), appName)
 	weatherCacheFile     = fmt.Sprintf("%s/.cache/%s/weather.json", os.Getenv("HOME"), appName)
-	weatherCacheDuration = 2 * time.Minute
+	weatherCacheDuration = 15 * time.Minute
 	reANSI               = regexp.MustCompile("[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))")
 	envHome              = os.Getenv("HOME")
 	hostInfo             = info{}

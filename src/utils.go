@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
@@ -133,4 +134,17 @@ func isFileOlderThan(filePath string, duration time.Duration) (bool, error) {
 func windArrow(deg int) string {
 	arrows := []string{"↓", "↙", "←", "↖", "↑", "↗", "→", "↘"}
 	return arrows[((deg+22)%360)/45]
+}
+
+// countNonEmptyLines returns the number of non-empty trimmed lines in the provided string.
+func countNonEmptyLines(input string) int {
+	scanner := bufio.NewScanner(strings.NewReader(input))
+	count := 0
+	for scanner.Scan() {
+		if strings.TrimSpace(scanner.Text()) == "" {
+			continue
+		}
+		count++
+	}
+	return count
 }
